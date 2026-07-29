@@ -1,0 +1,6 @@
+name: StarMSkyblockGamePlay
+version: '${version}'
+
+main: team.starm.starMSkyblockGamePlay.StarMSkyblockGamePlay
+api-version: '26.1.2'
+load: POSTWORLD
