@@ -1,5 +1,6 @@
 package team.starm.starMSkyblockGamePlay;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
@@ -97,6 +98,10 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
                 meta.getPersistentDataContainer().set(flagKey, PersistentDataType.BOOLEAN, true);
                 if (finalChance > 0) {
                     meta.getPersistentDataContainer().set(chanceKey, PersistentDataType.INTEGER, finalChance);
+                }
+                String itemName = getConfig().getString("snowball-converter.item-name");
+                if (itemName != null && !itemName.isEmpty()) {
+                    meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', itemName));
                 }
             });
 

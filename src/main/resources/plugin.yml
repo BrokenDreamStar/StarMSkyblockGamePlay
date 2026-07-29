@@ -4,3 +4,16 @@ version: '${version}'
 main: team.starm.starMSkyblockGamePlay.StarMSkyblockGamePlay
 api-version: '26.1.2'
 load: POSTWORLD
+author: BrokenDream_Star, DeepSeek
+website: https://starm.team/
+
+commands:
+  starmskyblockgameplay:
+    description: StarMSkyblockGamePlay 管理命令
+    usage: /starmskyblockgameplay reload
+    permission: starmskyblockgameplay.admin
+
+permissions:
+  starmskyblockgameplay.admin:
+    description: 允许执行 /starmskyblockgameplay 命令
+    default: op

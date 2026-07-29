@@ -16,6 +16,17 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
 }
 
+tasks.jar {
+    manifest {
+        attributes(
+            "Implementation-Title" to rootProject.name,
+            "Implementation-Version" to version,
+            "Implementation-Vendor" to "BrokenDream_Star, DeepSeek",
+            "Implementation-URL" to "https://starm.team/"
+        )
+    }
+}
+
 tasks {
     runServer {
         // Configure the Minecraft version for our task.
