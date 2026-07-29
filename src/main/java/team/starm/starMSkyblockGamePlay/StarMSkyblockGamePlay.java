@@ -15,6 +15,7 @@ import team.starm.starMSkyblockGamePlay.listener.SnowballConverterListener;
 import team.starm.starMSkyblockGamePlay.listener.TrialSpawnerListener;
 import team.starm.starMSkyblockGamePlay.listener.VaultListener;
 
+import java.util.List;
 import java.util.Map;
 
 public final class StarMSkyblockGamePlay extends JavaPlugin {
@@ -102,6 +103,12 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
                 String itemName = getConfig().getString("snowball-converter.item-name");
                 if (itemName != null && !itemName.isEmpty()) {
                     meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', itemName));
+                }
+                List<String> lore = getConfig().getStringList("snowball-converter.lore");
+                if (!lore.isEmpty()) {
+                    meta.setLore(lore.stream()
+                            .map(line -> ChatColor.translateAlternateColorCodes('&', line))
+                            .toList());
                 }
             });
 
