@@ -13,6 +13,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.projectiles.ProjectileSource;
@@ -36,6 +37,34 @@ public class SnowballConverterListener implements Listener {
         this.lang = plugin.getLanguageManager();
         this.flagKey = new NamespacedKey(plugin, "mob_converter");
         this.chanceKey = new NamespacedKey(plugin, "mob_converter_chance");
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onSnowballLaunch(ProjectileLaunchEvent event) {
+        if (!plugin.getConfig().getBoolean("snowball-converter.enabled", true)) return;
+        if (!(event.getEntity() instanceof Snowball snowball)) return;
+        if (!(snowball.getShooter() instanceof Player player)) return;
+
+        // Copy PDC from the held item to the snowball entity.
+        // When a player throws a snowball, the item's PDC does NOT automatically
+        // transfer to the projectile entity, so we must do it explicitly.
+        for (ItemStack item : new ItemStack[]{
+                player.getInventory().getItemInMainHand(),
+                player.getInventory().getItemInOffHand()
+        }) {
+            if (item.getType() != Material.SNOWBALL || !item.hasItemMeta()) continue;
+            var meta = item.getItemMeta();
+            var itemPDC = meta.getPersistentDataContainer();
+            if (!itemPDC.has(flagKey, PersistentDataType.BOOLEAN)) continue;
+
+            var snowballPDC = snowball.getPersistentDataContainer();
+            snowballPDC.set(flagKey, PersistentDataType.BOOLEAN, true);
+            if (itemPDC.has(chanceKey, PersistentDataType.INTEGER)) {
+                snowballPDC.set(chanceKey, PersistentDataType.INTEGER,
+                        itemPDC.get(chanceKey, PersistentDataType.INTEGER));
+            }
+            return; // Found the converter snowball in this hand
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
