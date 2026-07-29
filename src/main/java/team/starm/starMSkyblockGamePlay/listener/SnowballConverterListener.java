@@ -1,5 +1,6 @@
 package team.starm.starMSkyblockGamePlay.listener;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -94,13 +95,8 @@ public class SnowballConverterListener implements Listener {
             return;
         }
 
-        // Build entity display name (from Chinese translations, fallback to English key)
-        String entityName = lang.getRaw("entity-names." + entityType.name());
-        if (entityName == null || entityName.startsWith("<missing")) {
-            String key = entityType.getKey().getKey();
-            entityName = Character.toUpperCase(key.charAt(0)) + key.substring(1);
-        }
-        Map<String, String> entityPlaceholder = Map.of("entity", entityName);
+        // Build translatable entity name component (auto-translates to player's client language)
+        Component entityComp = Component.translatable("entity.minecraft." + entityType.getKey().getKey());
 
         // Blacklist check
         List<String> blacklist = plugin.getConfig().getStringList("snowball-converter.blacklist");
@@ -112,7 +108,9 @@ public class SnowballConverterListener implements Listener {
 
         // Roll
         if (ThreadLocalRandom.current().nextInt(100) >= chance) {
-            player.sendMessage(lang.getColored("snowball-converter.failed", entityPlaceholder));
+            player.sendMessage(Component.text("§7捕捉")
+                    .append(entityComp)
+                    .append(Component.text("失败了...")));
             return;
         }
 
@@ -132,7 +130,11 @@ public class SnowballConverterListener implements Listener {
             loc.getWorld().dropItemNaturally(loc, leftover.values().iterator().next());
         }
 
-        player.sendMessage(lang.getColored("snowball-converter.converted", entityPlaceholder));
+        player.sendMessage(Component.text("§a捕捉")
+                .append(entityComp)
+                .append(Component.text("成功 已获得"))
+                .append(entityComp)
+                .append(Component.text("刷怪蛋x1")));
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
