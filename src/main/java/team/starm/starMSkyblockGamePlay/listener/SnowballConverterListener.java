@@ -94,9 +94,12 @@ public class SnowballConverterListener implements Listener {
             return;
         }
 
-        // Build entity display name (e.g. "Zombie", "Creeper")
-        String key = entityType.getKey().getKey();
-        String entityName = Character.toUpperCase(key.charAt(0)) + key.substring(1);
+        // Build entity display name (from Chinese translations, fallback to English key)
+        String entityName = lang.getRaw("entity-names." + entityType.name());
+        if (entityName == null || entityName.startsWith("<missing")) {
+            String key = entityType.getKey().getKey();
+            entityName = Character.toUpperCase(key.charAt(0)) + key.substring(1);
+        }
         Map<String, String> entityPlaceholder = Map.of("entity", entityName);
 
         // Blacklist check
