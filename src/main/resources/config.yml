@@ -39,21 +39,27 @@ snowball-converter:
   # 是否启用该功能
   enabled: true
   # 全局转换概率（百分比 0-100）
-  global-chance: 30
+  global-chance: 50
   # 雪球物品显示名称（支持 & 颜色代码，留空则不设置名称）
   item-name: "&d&l精灵球"
   # 雪球物品 Lore 描述（支持 & 颜色代码，每行一个）
   lore:
-    - "&7击中生物时有概率将其转换为刷怪蛋"
-    - "&e概率可在配置文件中调整"
-  # 黑名单生物类型列表（EntityType 枚举名）
+    - "&d击中生物时有50%概率将其捕捉为刷怪蛋"
+    - "&e请在菜单的帮助页面查看可捕捉生物列表"
+  # 是否启用白名单模式（true=仅白名单内生物可转换，false=黑名单模式）
+  use-whitelist: false
+  # 白名单生物类型列表（use-whitelist: true 时生效，EntityType 枚举名）
+  whitelist:
+    - ZOMBIE
+    - SKELETON
+    - CREEPER
+  # 黑名单生物类型列表（EntityType 枚举名，白名单模式下不生效）
   blacklist:
+    - WARDEN
+    - WANDERING_TRADER
+    - VILLAGER
     - IRON_GOLEM
-    - SNOW_GOLEM
-    - WITHER
     - ELDER_GUARDIAN
   # 独立转换概率（按生物类型覆盖全局概率）
   mob-chances:
     ZOMBIE: 50
-    CREEPER: 40
-    SKELETON: 35

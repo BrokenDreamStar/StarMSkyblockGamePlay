@@ -98,9 +98,15 @@ public class SnowballConverterListener implements Listener {
         // Build translatable entity name component (auto-translates to player's client language)
         Component entityComp = Component.translatable("entity.minecraft." + entityType.getKey().getKey());
 
-        // Blacklist check
-        List<String> blacklist = plugin.getConfig().getStringList("snowball-converter.blacklist");
-        if (blacklist.contains(entityType.name())) return;
+        // Whitelist / Blacklist check
+        boolean useWhitelist = plugin.getConfig().getBoolean("snowball-converter.use-whitelist", false);
+        if (useWhitelist) {
+            List<String> whitelist = plugin.getConfig().getStringList("snowball-converter.whitelist");
+            if (!whitelist.contains(entityType.name())) return;
+        } else {
+            List<String> blacklist = plugin.getConfig().getStringList("snowball-converter.blacklist");
+            if (blacklist.contains(entityType.name())) return;
+        }
 
         // Calculate chance
         int chance = resolveChance(entityType, snowball);
