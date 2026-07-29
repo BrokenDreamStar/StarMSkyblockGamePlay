@@ -100,7 +100,11 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
                 }
             });
 
-            target.getInventory().addItem(snowball);
+            Map<Integer, ItemStack> leftover = target.getInventory().addItem(snowball);
+            if (!leftover.isEmpty()) {
+                target.getWorld().dropItemNaturally(target.getLocation(), snowball);
+                sender.sendMessage("§e部分雪球因背包空间不足已掉落至地上。");
+            }
             sender.sendMessage(languageManager.getColored("snowball-converter.give-snowball",
                     Map.of("player", target.getName(), "amount", String.valueOf(amount))));
             return true;

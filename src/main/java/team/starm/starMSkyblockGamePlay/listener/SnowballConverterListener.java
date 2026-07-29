@@ -22,7 +22,6 @@ import team.starm.starMSkyblockGamePlay.util.EntityTypeSpawnEggMapper;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class SnowballConverterListener implements Listener {
@@ -31,7 +30,6 @@ public class SnowballConverterListener implements Listener {
     private final LanguageManager lang;
     private final NamespacedKey flagKey;
     private final NamespacedKey chanceKey;
-    private final Random random = ThreadLocalRandom.current();
 
     public SnowballConverterListener(StarMSkyblockGamePlay plugin) {
         this.plugin = plugin;
@@ -76,7 +74,7 @@ public class SnowballConverterListener implements Listener {
         if (chance <= 0) return;
 
         // Roll
-        if (random.nextInt(100) >= chance) {
+        if (ThreadLocalRandom.current().nextInt(100) >= chance) {
             player.sendMessage(lang.getColored("snowball-converter.failed"));
             return;
         }
@@ -94,7 +92,7 @@ public class SnowballConverterListener implements Listener {
         ItemStack egg = new ItemStack(eggMaterial, 1);
         Map<Integer, ItemStack> leftover = player.getInventory().addItem(egg);
         if (!leftover.isEmpty()) {
-            loc.getWorld().dropItemNaturally(loc, egg);
+            loc.getWorld().dropItemNaturally(loc, leftover.values().iterator().next());
         }
 
         player.sendMessage(lang.getColored("snowball-converter.converted"));
