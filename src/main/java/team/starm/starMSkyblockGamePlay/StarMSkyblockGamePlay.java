@@ -111,7 +111,9 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
                 sender.sendMessage("§e部分雪球因背包空间不足已掉落至地上。");
             }
             sender.sendMessage(languageManager.getColored("snowball-converter.give-snowball",
-                    Map.of("player", target.getName(), "amount", String.valueOf(amount))));
+                    Map.of("player", target.getName(),
+                            "amount", String.valueOf(amount),
+                            "item-name", getConfig().getString("snowball-converter.item-name", ""))));
             return true;
         }
 

@@ -4,13 +4,13 @@
 
 trial-spawner:
   not-in-cooldown: "&c该试炼刷怪笼不在冷却中"
-  cooldown-ended: "&a消耗 1 个铜块，试炼刷怪笼冷却已结束！"
+  cooldown-ended: "&a消耗 1 个铜块，试炼刷怪笼已刷新！"
   cooldown-reduced: "&a消耗 1 个铜块，冷却缩减 &e{reduction_seconds} &a秒！剩余冷却 &e{remaining_seconds} &a秒"
 
 vault:
-  not-in-blacklist: "&c你不在{vault_type}的黑名单中"
-  limit-reached: "&c你今天已对{vault_type}移除黑名单 {count} 次（上限 {limit} 次）"
-  removed: "&a消耗 1 个铜块，已从{vault_type}的黑名单中移除"
+  not-in-blacklist: "&c该{vault_type}无法刷新"
+  limit-reached: "&c你今天已刷新{vault_type} {count}/{limit} 次"
+  removed: "&a消耗 1 个铜块，已刷新{vault_type}"
 
 vault-types:
   normal: "宝库"
@@ -22,7 +22,7 @@ logger:
   vault-daily-reset: "{vault_name} 每日次数已重置"
 
 snowball-converter:
-  converted: "&a捕获{entity}成功 已获得{entity}刷怪蛋x1"
-  failed: "&7生物抵抗了转换效果..."
+  converted: "&a捕捉{entity}成功 已获得{entity}刷怪蛋x1"
+  failed: "&7捕捉{entity}失败了..."
   no-egg: "&c该生物没有对应的刷怪蛋"
-  give-snowball: "&a已给予 {player} {amount} 个特殊雪球"
+  give-snowball: "&a已给予 {player} {amount} 个{item-name}"

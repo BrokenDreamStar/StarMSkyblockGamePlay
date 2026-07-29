@@ -94,6 +94,11 @@ public class SnowballConverterListener implements Listener {
             return;
         }
 
+        // Build entity display name (e.g. "Zombie", "Creeper")
+        String key = entityType.getKey().getKey();
+        String entityName = Character.toUpperCase(key.charAt(0)) + key.substring(1);
+        Map<String, String> entityPlaceholder = Map.of("entity", entityName);
+
         // Blacklist check
         List<String> blacklist = plugin.getConfig().getStringList("snowball-converter.blacklist");
         if (blacklist.contains(entityType.name())) return;
@@ -104,7 +109,7 @@ public class SnowballConverterListener implements Listener {
 
         // Roll
         if (ThreadLocalRandom.current().nextInt(100) >= chance) {
-            player.sendMessage(lang.getColored("snowball-converter.failed"));
+            player.sendMessage(lang.getColored("snowball-converter.failed", entityPlaceholder));
             return;
         }
 
@@ -118,18 +123,13 @@ public class SnowballConverterListener implements Listener {
         Location loc = living.getLocation();
         living.remove();
 
-        // Build entity display name (e.g. "Zombie", "Creeper")
-        String key = entityType.getKey().getKey();
-        String entityName = Character.toUpperCase(key.charAt(0)) + key.substring(1);
-
         ItemStack egg = new ItemStack(eggMaterial, 1);
         Map<Integer, ItemStack> leftover = player.getInventory().addItem(egg);
         if (!leftover.isEmpty()) {
             loc.getWorld().dropItemNaturally(loc, leftover.values().iterator().next());
         }
 
-        player.sendMessage(lang.getColored("snowball-converter.converted",
-                Map.of("entity", entityName)));
+        player.sendMessage(lang.getColored("snowball-converter.converted", entityPlaceholder));
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
