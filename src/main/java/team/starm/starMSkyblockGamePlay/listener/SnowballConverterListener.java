@@ -118,13 +118,18 @@ public class SnowballConverterListener implements Listener {
         Location loc = living.getLocation();
         living.remove();
 
+        // Build entity display name (e.g. "Zombie", "Creeper")
+        String key = entityType.getKey().getKey();
+        String entityName = Character.toUpperCase(key.charAt(0)) + key.substring(1);
+
         ItemStack egg = new ItemStack(eggMaterial, 1);
         Map<Integer, ItemStack> leftover = player.getInventory().addItem(egg);
         if (!leftover.isEmpty()) {
             loc.getWorld().dropItemNaturally(loc, leftover.values().iterator().next());
         }
 
-        player.sendMessage(lang.getColored("snowball-converter.converted"));
+        player.sendMessage(lang.getColored("snowball-converter.converted",
+                Map.of("entity", entityName)));
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

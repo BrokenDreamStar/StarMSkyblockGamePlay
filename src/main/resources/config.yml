@@ -41,7 +41,7 @@ snowball-converter:
   # 全局转换概率（百分比 0-100）
   global-chance: 30
   # 雪球物品显示名称（支持 & 颜色代码，留空则不设置名称）
-  item-name: "&e&l转换雪球"
+  item-name: "&d&l精灵球"
   # 黑名单生物类型列表（EntityType 枚举名）
   blacklist:
     - IRON_GOLEM

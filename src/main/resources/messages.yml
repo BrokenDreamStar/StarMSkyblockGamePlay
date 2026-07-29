@@ -22,7 +22,7 @@ logger:
   vault-daily-reset: "{vault_name} 每日次数已重置"
 
 snowball-converter:
-  converted: "&a成功将生物转换为刷怪蛋！"
+  converted: "&a捕获{entity}成功 已获得{entity}刷怪蛋x1"
   failed: "&7生物抵抗了转换效果..."
   no-egg: "&c该生物没有对应的刷怪蛋"
   give-snowball: "&a已给予 {player} {amount} 个特殊雪球"
