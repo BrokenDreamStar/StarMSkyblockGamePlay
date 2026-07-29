@@ -1,0 +1,53 @@
+# StarMSkyblockGamePlay 配置
+
+trial-spawner:
+  # 每个铜块减少的冷却时间（单位：tick）
+  cooldown-reduction-ticks: 3600
+  # 是否启用该功能
+  enabled: true
+  # 禁止使用刷怪蛋替换试炼刷怪笼
+  prevent-ominous-spawn-egg: true
+
+vault:
+  # 是否启用宝库功能
+  enabled: true
+  # 每个玩家每天可以刷新宝库的次数（0 表示不限次数）
+  blacklist-removal-limit: 5
+  # 每日刷新时间（24小时制，HH:mm 格式）
+  reset-time: '04:00'
+
+ominous-vault:
+  # 是否启用不祥宝库功能
+  enabled: true
+  # 每个玩家每天可以刷新不祥宝库的次数（0 表示不限次数）
+  blacklist-removal-limit: 5
+  # 每日刷新时间（24小时制，HH:mm 格式）
+  reset-time: '04:00'
+
+# 精准采集可采集方块列表（配置的方块在拥有精准采集附魔时会被完整采集，保留所有 NBT 数据）
+silk-touch-collectibles:
+  # 是否启用该功能
+  enabled: true
+  # 可采集的方块类型列表（填写 Material 枚举名）
+  blocks:
+    - SPAWNER
+    - TRIAL_SPAWNER
+    - VAULT
+
+# 雪球转换功能（击中生物有概率转换为对应刷怪蛋）
+snowball-converter:
+  # 是否启用该功能
+  enabled: true
+  # 全局转换概率（百分比 0-100）
+  global-chance: 30
+  # 黑名单生物类型列表（EntityType 枚举名）
+  blacklist:
+    - IRON_GOLEM
+    - SNOW_GOLEM
+    - WITHER
+    - ELDER_GUARDIAN
+  # 独立转换概率（按生物类型覆盖全局概率）
+  mob-chances:
+    ZOMBIE: 50
+    CREEPER: 40
+    SKELETON: 35

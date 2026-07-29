@@ -1,0 +1,28 @@
+# StarMSkyblockGamePlay 消息配置
+# 使用 & 加颜色代码 (&a=绿色, &c=红色, &e=黄色, &7=灰色, &b=天蓝色)
+# 占位符格式: {placeholder_name}
+
+trial-spawner:
+  not-in-cooldown: "&c该试炼刷怪笼不在冷却中"
+  cooldown-ended: "&a消耗 1 个铜块，试炼刷怪笼冷却已结束！"
+  cooldown-reduced: "&a消耗 1 个铜块，冷却缩减 &e{reduction_seconds} &a秒！剩余冷却 &e{remaining_seconds} &a秒"
+
+vault:
+  not-in-blacklist: "&c你不在{vault_type}的黑名单中"
+  limit-reached: "&c你今天已对{vault_type}移除黑名单 {count} 次（上限 {limit} 次）"
+  removed: "&a消耗 1 个铜块，已从{vault_type}的黑名单中移除"
+
+vault-types:
+  normal: "宝库"
+  ominous: "不祥宝库"
+
+logger:
+  vault-data-create-error: "无法创建 vault-data.yml: {error}"
+  vault-data-save-error: "无法保存 vault-data.yml: {error}"
+  vault-daily-reset: "{vault_name} 每日次数已重置"
+
+snowball-converter:
+  converted: "&a成功将生物转换为刷怪蛋！"
+  failed: "&7生物抵抗了转换效果..."
+  no-egg: "&c该生物没有对应的刷怪蛋"
+  give-snowball: "&a已给予 {player} {amount} 个特殊雪球"
