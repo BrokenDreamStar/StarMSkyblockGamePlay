@@ -22,10 +22,10 @@ logger:
   vault-daily-reset: "{vault_name} 每日次数已重置"
 
 snowball-converter:
-  converted: "&a捕捉&f{entity}&a成功 &f已获得{entity}刷怪蛋"
-  failed: "&7捕捉&f{entity}&7失败了..."
+  converted: "&a捕捉{entity}成功 已获得{entity}刷怪蛋x1"
+  failed: "&7捕捉{entity}失败了..."
   no-egg: "&c该生物没有对应的刷怪蛋"
-  give-snowball: "&a已给予 {player} {amount}个{item-name}"
+  give-snowball: "&a已给予 {player} {amount} 个{item-name}"
 
 end-portal-generator:
   # 传送门已生成
