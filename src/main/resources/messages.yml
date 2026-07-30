@@ -32,3 +32,5 @@ end-portal-generator:
   generated: "&a已生成末地传送门！"
   # 传送门生成失败（方块被阻挡）
   blocked: "&c传送门框架位置被阻挡，无法生成传送门！"
+  # 命令给予成功
+  give-success: "&a已将 {amount} 个{item-name}给予玩家 {player}"
