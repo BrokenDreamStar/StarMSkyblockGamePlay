@@ -13,6 +13,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -56,14 +57,25 @@ public class EndPortalGeneratorListener implements Listener {
         if (meta == null) return;
         if (!meta.getPersistentDataContainer().has(portalKey, PersistentDataType.BOOLEAN)) return;
 
+        // Main hand only
+        if (event.getHand() != EquipmentSlot.HAND) return;
+
         Block clickedBlock = event.getClickedBlock();
         if (clickedBlock == null) return;
 
         // Center: clicked block location + (0.5, 1, 0.5)
         Location center = clickedBlock.getLocation().add(0.5, 1, 0.5);
 
-        // Check all 12 frame positions are clear
+        // Check all 12 frame positions are within world bounds and clear
+        var world = clickedBlock.getWorld();
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight();
         for (int[] offset : FRAME_OFFSETS) {
+            int frameY = center.getBlockY() + offset[1];
+            if (frameY < minY || frameY >= maxY) {
+                player.sendMessage(lang.getColored("end-portal-generator.blocked"));
+                return;
+            }
             Block frameBlock = center.clone().add(offset[0], offset[1], offset[2]).getBlock();
             if (!isReplaceable(frameBlock)) {
                 player.sendMessage(lang.getColored("end-portal-generator.blocked"));
@@ -95,9 +107,13 @@ public class EndPortalGeneratorListener implements Listener {
 
     /**
      * Check if a block can be replaced (air, water, cave_air, or other non-solid blocks).
+     * Excludes lava and other dangerous liquids.
      */
     private boolean isReplaceable(Block block) {
-        return block.isEmpty() || block.isLiquid() || Tag.REPLACEABLE_BY_TREES.isTagged(block.getType());
+        if (block.isEmpty()) return true;
+        Material type = block.getType();
+        if (type == Material.LAVA) return false;
+        return type == Material.WATER || Tag.REPLACEABLE_BY_TREES.isTagged(type);
     }
 
     /**
