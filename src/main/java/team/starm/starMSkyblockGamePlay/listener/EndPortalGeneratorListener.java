@@ -27,15 +27,16 @@ public class EndPortalGeneratorListener implements Listener {
     private final NamespacedKey portalKey;
 
     // Frame positions relative to center (12 positions, corners excluded)
+    // Each entry: {dx, dy, dz} (all dy=0 since frames are all at center Y)
     private static final int[][] FRAME_OFFSETS = {
         // x=-2 side (facing EAST)
-        {-2, -1, 0}, {-2, 0, 0}, {-2, 1, 0},
+        {-2, 0, -1}, {-2, 0, 0}, {-2, 0, 1},
         // z=-2 side (facing SOUTH)
-        {-1, -2, 0}, {0, -2, 0}, {1, -2, 0},
+        {-1, 0, -2}, {0, 0, -2}, {1, 0, -2},
         // z=+2 side (facing NORTH)
-        {-1, 2, 0}, {0, 2, 0}, {1, 2, 0},
+        {-1, 0, 2}, {0, 0, 2}, {1, 0, 2},
         // x=+2 side (facing WEST)
-        {2, -1, 0}, {2, 0, 0}, {2, 1, 0},
+        {2, 0, -1}, {2, 0, 0}, {2, 0, 1},
     };
 
     public EndPortalGeneratorListener(StarMSkyblockGamePlay plugin) {
