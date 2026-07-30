@@ -71,6 +71,9 @@ public class EndPortalGeneratorListener implements Listener {
             }
         }
 
+        // Cancel the event so interactive blocks (chest, door, etc.) don't also open
+        event.setCancelled(true);
+
         // Place frame blocks
         for (int[] offset : FRAME_OFFSETS) {
             Block frameBlock = center.clone().add(offset[0], offset[1], offset[2]).getBlock();
