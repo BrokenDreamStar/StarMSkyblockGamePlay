@@ -100,8 +100,10 @@ public class EndPortalGeneratorListener implements Listener {
             }
         }
 
-        // Consume 1 item
-        item.setAmount(item.getAmount() - 1);
+        // Consume 1 item (only in survival/adventure mode)
+        if (player.getGameMode() != org.bukkit.GameMode.CREATIVE) {
+            item.setAmount(item.getAmount() - 1);
+        }
 
         player.sendMessage(lang.getColored("end-portal-generator.generated"));
     }
