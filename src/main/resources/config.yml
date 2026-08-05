@@ -156,3 +156,10 @@ end-portal-generator:
   # 物品 Lore 描述（每行一条）
   lore:
     - "&7右键点击方块以生成末地传送门"
+
+# 铁砧超等级附魔书（允许应用超过原版最高等级的附魔书，如效率10）
+anvil-high-level-enchant:
+  # 是否启用该功能
+  enabled: true
+  # 铁砧"过于昂贵"的经验花费上限（原版为 40；设为 0 或负数表示不设上限）
+  max-repair-cost: 40
