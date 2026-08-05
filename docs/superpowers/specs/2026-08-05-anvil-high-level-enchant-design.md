@@ -97,7 +97,7 @@ Both values persist for the lifetime of the anvil menu and reset when the menu i
 ## Error Handling
 
 - Feature disabled → silently ignore (no message, vanilla behavior preserved)
-- No other failure modes — the API is a pure boolean flag toggle on the view.
+- No other failure modes — the listener only toggles two view properties (`bypassEnchantmentLevelRestriction`, `maximumRepairCost`).
 
 ## Testing
 
