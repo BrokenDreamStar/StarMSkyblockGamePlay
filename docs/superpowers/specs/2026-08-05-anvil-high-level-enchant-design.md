@@ -54,6 +54,8 @@ The implementation is a ~10-line listener; no manual recomputation of the anvil'
 anvil-high-level-enchant:
   # 是否启用该功能
   enabled: true
+  # 铁砧"过于昂贵"的经验花费上限（原版为 40；设为 0 或负数表示不设上限）
+  max-repair-cost: 40
 ```
 
 ## Listener: `AnvilEnchantBypassListener`
@@ -64,7 +66,15 @@ anvil-high-level-enchant:
 @EventHandler
 public void onPrepareAnvil(PrepareAnvilEvent event) {
     if (!plugin.getConfig().getBoolean("anvil-high-level-enchant.enabled", true)) return;
-    event.getView().bypassEnchantmentLevelRestriction(true);
+
+    AnvilView view = event.getView();
+    view.bypassEnchantmentLevelRestriction(true);
+
+    int maxRepairCost = plugin.getConfig().getInt("anvil-high-level-enchant.max-repair-cost", 40);
+    if (maxRepairCost <= 0) {
+        maxRepairCost = Integer.MAX_VALUE; // 不设"过于昂贵"上限
+    }
+    view.setMaximumRepairCost(maxRepairCost);
 }
 ```
 
@@ -72,15 +82,15 @@ Gate check: `anvil-high-level-enchant.enabled` (default `true`) — disabled →
 
 ### Timing (verified in the server jar)
 
-`PrepareAnvilEvent` fires at the end of every `createResult()` pass, including the early "one slot empty" passes that cannot produce a clamped result. The flag is therefore set on the player's first placement (tool or book), and is already `true` by the time both slots hold items — so the result shown for the item + book combination is correct immediately. No re-triggering of `createResult()` is required.
+Both `bypassEnchantmentLevelRestriction` (read at the level-clamp) and `maximumRepairCost` (read at the "too expensive" check) are read during `createResult()`, and `PrepareAnvilEvent` fires at the end of every `createResult()` pass — including the early "one slot empty" passes that cannot produce a clamped/too-expensive result. The values are therefore set on the player's first placement (tool or book), and are already in effect by the time both slots hold items — so the result shown for the item + book combination is correct immediately. No re-triggering of `createResult()` is required.
 
-The flag persists for the lifetime of the anvil menu and resets when the menu is closed.
+Both values persist for the lifetime of the anvil menu and reset when the menu is closed.
 
 ## Behavior
 
 - **Efficiency X book + tool** → the tool gets Efficiency X (vanilla would clamp to V).
 - **Experience cost** scales with the true level (Efficiency X ≈ 10 levels), staying under the vanilla "too expensive" threshold (40) for normal over-level books.
-- **"Too expensive" is preserved** (user's choice): a book whose computed cost reaches the vanilla `maximumRepairCost` (40) is still rejected by the anvil.
+- **"Too expensive" threshold is configurable**: `anvil-high-level-enchant.max-repair-cost` sets the anvil's maximum repair cost (vanilla default `40`). Books whose computed cost reaches the threshold are rejected as "too expensive"; setting it to `0` or negative removes the cap entirely (only the player's own XP then limits taking the result).
 - **Enchantment compatibility is unaffected** — conflicting enchantments (e.g., Sharpness + Smite) are still rejected; the bypass only removes the level clamp.
 - **Book + book**: combining two identical over-level books yields `level + 1` (vanilla rule, now unclamped) — e.g., two Efficiency X books → Efficiency XI.
 
@@ -109,3 +119,6 @@ Manual testing via `./gradlew runServer` (user-driven).
 4. Confirm a conflicting enchantment is still rejected (Sharpness X book on a Smite tool).
 5. Set `anvil-high-level-enchant.enabled: false` and reload → the vanilla clamp returns (Efficiency X → Efficiency V).
 6. Confirm normal enchantments (e.g., Efficiency V book) behave exactly as vanilla.
+7. With the default `max-repair-cost: 40`, a book whose computed cost reaches 40 (e.g., a very high-level Sharpness book) is rejected as "too expensive".
+8. Set `max-repair-cost: 200` and reload → the same book now produces a result with the full cost shown (the player needs enough levels to take it).
+9. Set `max-repair-cost: 0` and reload → no book is ever "too expensive" (only the player's XP gates the take).
