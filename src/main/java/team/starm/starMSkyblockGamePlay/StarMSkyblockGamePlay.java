@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import team.starm.starMSkyblockGamePlay.listener.AnvilEnchantBypassListener;
 import team.starm.starMSkyblockGamePlay.listener.EndPortalGeneratorListener;
 import team.starm.starMSkyblockGamePlay.listener.LightningGuardianConvertListener;
 import team.starm.starMSkyblockGamePlay.listener.SilkTouchCollectListener;
@@ -38,6 +39,7 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SnowballConverterListener(this), this);
         getServer().getPluginManager().registerEvents(new LightningGuardianConvertListener(this), this);
         getServer().getPluginManager().registerEvents(new EndPortalGeneratorListener(this), this);
+        getServer().getPluginManager().registerEvents(new AnvilEnchantBypassListener(this), this);
     }
 
     @Override
