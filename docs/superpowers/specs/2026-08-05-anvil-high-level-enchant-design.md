@@ -2,9 +2,9 @@
 
 ## Overview
 
-Add a feature to StarMSkyblockGamePlay: allow players to apply enchanted books whose enchantment levels exceed the vanilla maximum (e.g., an Efficiency X book) on the anvil.
+Add a feature to StarMSkyblockGamePlay: allow players to apply enchanted books whose enchantment levels exceed the vanilla maximum (e.g., an Efficiency X book given via command) on the anvil — **without** allowing players to craft over-level enchantments themselves from vanilla-legal books.
 
-Vanilla clamps any enchantment applied via the anvil to `Enchantment#getMaxLevel()` (5 for Efficiency, 5 for Sharpness, etc.), so an Efficiency X book becomes Efficiency V. This feature disables that clamp so the book's full level is applied.
+Vanilla clamps any enchantment applied via the anvil to `Enchantment#getMaxLevel()` (5 for Efficiency, 5 for Sharpness, etc.), so an Efficiency X book becomes Efficiency V. This feature applies the full level **only when the book or item already carries an enchantment above its vanilla max**; all-vanilla-legal combinations keep vanilla behavior (e.g., two Efficiency V books still give Efficiency V, never VI).
 
 ## Architecture
 
@@ -12,13 +12,13 @@ Vanilla clamps any enchantment applied via the anvil to `Enchantment#getMaxLevel
 
 | File | Purpose |
 |------|---------|
-| `listener/AnvilEnchantBypassListener.java` | Listens to `PrepareAnvilEvent`; enables Paper's anvil level-restriction bypass on the anvil view |
+| `listener/HighLevelEnchantListener.java` | Listens to `PrepareAnvilEvent`; corrects the result enchantment level only for over-level inputs |
 
 ### Modified Files
 
 | File | Change |
 |------|--------|
-| `StarMSkyblockGamePlay.java` | Register `AnvilEnchantBypassListener` in `onEnable` |
+| `StarMSkyblockGamePlay.java` | Register `HighLevelEnchantListener` in `onEnable` |
 | `config.yml` | Add `anvil-high-level-enchant` section |
 
 No `messages.yml` changes — the feature is silent and requires no user-facing messages.
@@ -33,19 +33,19 @@ if (resultLevel > enchantment.getMaxLevel() && !this.bypassEnchantmentLevelRestr
 }
 ```
 
-The `bypassEnchantmentLevelRestriction` field is initialized to `false` in the constructor and is never set by vanilla — so the clamp always applies, even in Creative mode.
+The `bypassEnchantmentLevelRestriction` field is initialized to `false` and never set by vanilla — so the clamp always applies. Paper exposes it as `AnvilView#bypassEnchantmentLevelRestriction(boolean)`, but enabling it globally is **too broad**: it also lets vanilla-legal combinations exceed the cap (two Efficiency V books → Efficiency VI), which the user does not want. Hence this feature does **not** use that flag; it corrects the result item directly instead.
 
 ## Solution
 
-Paper exposes this field as a native API on `org.bukkit.inventory.view.AnvilView`:
+In `PrepareAnvilEvent`, after vanilla has computed the result:
 
-```java
-void bypassEnchantmentLevelRestriction(boolean bypassEnchantmentLevelRestriction)
-```
+- Read the second slot (book) enchantments via `EnchantmentStorageMeta` (books store enchantments in `STORED_ENCHANTMENTS`, which `ItemStack#getEnchantments()` does **not** return).
+- For each book enchantment `E`:
+  - If `bookLevel <= max(E)` **and** `itemLevel <= max(E)` → skip. Vanilla behavior is correct (including clamping, so `Efficiency V + Efficiency V → Efficiency V`).
+  - If the vanilla result does not contain `E` → skip (vanilla rejected it as incompatible/not-applicable; do not force it).
+  - Otherwise (book or item carries `E` above its max) → set the result's `E` to `max(bookLevel, itemLevel)` via `ItemMeta#addEnchant` (tools) or `EnchantmentStorageMeta#addStoredEnchant` (books), with `ignoreLevelRestriction=true`.
 
-Its javadoc states it "allows for, e.g., enchanted books to be applied fully, even if their enchantments are beyond the limit." Setting it `true` on the anvil view skips the clamp, so the book's full level is applied and the experience cost is computed from the true level.
-
-The implementation is a ~10-line listener; no manual recomputation of the anvil's combining rules is needed. (Alternative approaches — manually recomputing enchantments in `PrepareAnvilEvent`, or intercepting result-take clicks — were rejected as needlessly complex / giving a wrong result preview.)
+This ensures **no anvil operation ever produces an enchantment level higher than the highest input book/item level** — over-level enchantments can only enter the game through a command-given book, and the anvil merely transfers/preserves them.
 
 ## Configuration (`config.yml`)
 
@@ -58,7 +58,7 @@ anvil-high-level-enchant:
   max-repair-cost: 40
 ```
 
-## Listener: `AnvilEnchantBypassListener`
+## Listener: `HighLevelEnchantListener`
 
 ### Event: `PrepareAnvilEvent` (priority NORMAL)
 
@@ -68,42 +68,56 @@ public void onPrepareAnvil(PrepareAnvilEvent event) {
     if (!plugin.getConfig().getBoolean("anvil-high-level-enchant.enabled", true)) return;
 
     AnvilView view = event.getView();
-    view.bypassEnchantmentLevelRestriction(true);
-
     int maxRepairCost = plugin.getConfig().getInt("anvil-high-level-enchant.max-repair-cost", 40);
-    if (maxRepairCost <= 0) {
-        maxRepairCost = Integer.MAX_VALUE; // 不设"过于昂贵"上限
-    }
+    if (maxRepairCost <= 0) maxRepairCost = Integer.MAX_VALUE;
     view.setMaximumRepairCost(maxRepairCost);
+
+    ItemStack first = event.getInventory().getFirstItem();
+    ItemStack second = event.getInventory().getSecondItem();
+    ItemStack result = event.getResult();
+    if (first == null || second == null || result == null || result.isEmpty()) return;
+
+    ItemStack fixed = null;
+    for (Map.Entry<Enchantment, Integer> entry : getEnchants(second).entrySet()) {
+        Enchantment ench = entry.getKey();
+        int bookLevel = entry.getValue();
+        int itemLevel = getLevel(first, ench);
+        if (bookLevel <= ench.getMaxLevel() && itemLevel <= ench.getMaxLevel()) continue; // 原版行为
+        if (getLevel(result, ench) <= 0) continue; // 不兼容/未应用，保持原版拒绝
+        int correctLevel = Math.max(bookLevel, itemLevel); // 不叠加，无法通过合成超出已有最高等级
+        if (fixed == null) fixed = result.clone();
+        setLevel(fixed, ench, correctLevel);
+    }
+    if (fixed != null) event.setResult(fixed);
 }
 ```
 
-Gate check: `anvil-high-level-enchant.enabled` (default `true`) — disabled → silently ignore, vanilla behavior preserved.
+Helper methods read/write enchantment level via `ItemMeta` / `EnchantmentStorageMeta` so both tools and enchanted-book results are handled.
 
-### Timing (verified in the server jar)
+### Timing
 
-Both `bypassEnchantmentLevelRestriction` (read at the level-clamp) and `maximumRepairCost` (read at the "too expensive" check) are read during `createResult()`, and `PrepareAnvilEvent` fires at the end of every `createResult()` pass — including the early "one slot empty" passes that cannot produce a clamped/too-expensive result. The values are therefore set on the player's first placement (tool or book), and are already in effect by the time both slots hold items — so the result shown for the item + book combination is correct immediately. No re-triggering of `createResult()` is required.
-
-Both values persist for the lifetime of the anvil menu and reset when the menu is closed.
+The event fires after vanilla builds the result, and this listener **modifies the result item directly** — so the corrected level appears immediately on the first placement of the book. No reliance on the bypass flag's next-pass timing.
 
 ## Behavior
 
-- **Efficiency X book + tool** → the tool gets Efficiency X (vanilla would clamp to V).
-- **Experience cost** scales with the true level (Efficiency X ≈ 10 levels), staying under the vanilla "too expensive" threshold (40) for normal over-level books.
-- **"Too expensive" threshold is configurable**: `anvil-high-level-enchant.max-repair-cost` sets the anvil's maximum repair cost (vanilla default `40`). Books whose computed cost reaches the threshold are rejected as "too expensive"; setting it to `0` or negative removes the cap entirely (only the player's own XP then limits taking the result).
-- **Enchantment compatibility is unaffected** — conflicting enchantments (e.g., Sharpness + Smite) are still rejected; the bypass only removes the level clamp.
-- **Book + book**: combining two identical over-level books yields `level + 1` (vanilla rule, now unclamped) — e.g., two Efficiency X books → Efficiency XI.
+- **Command-given Efficiency X book + clean tool** → Efficiency X (vanilla would clamp to V).
+- **Two vanilla Efficiency V books** → Efficiency V (vanilla behavior preserved; no VI).
+- **Two command-given Efficiency X books** → Efficiency X (takes the max; **no XI** — over-level levels are never increased by combining).
+- **Vanilla Efficiency V book + tool already carrying Efficiency X** → Efficiency X preserved (no downgrade).
+- **Incompatible over-level book** (e.g., Sharpness X on a Smite tool) → still rejected by vanilla, unchanged.
+- **Experience cost** stays as vanilla computed (based on the clamped level, so an Efficiency X book costs ~5 levels). Configuring `max-repair-cost` still lifts the "too expensive" gate for multi-enchantment books.
 
 ## Error Handling
 
-- Feature disabled → silently ignore (no message, vanilla behavior preserved)
-- No other failure modes — the listener only toggles two view properties (`bypassEnchantmentLevelRestriction`, `maximumRepairCost`).
+- Feature disabled → silently ignore (no message, vanilla behavior preserved).
+- Empty inputs / empty result / too-expensive empty result → silently return.
+- No other failure modes — the listener only reads enchantments and, conditionally, replaces the result item's enchantment levels.
 
 ## Testing
 
 Manual testing via `./gradlew runServer` (user-driven).
 
-**Obtaining a test book:** the plugin has no give-book command, so use a console/admin command with item components, e.g.:
+**Obtaining a test book** (command-given, over-level):
 
 ```
 /give @s minecraft:enchanted_book[enchantments={levels:{"minecraft:efficiency":10}}]
@@ -113,12 +127,12 @@ Manual testing via `./gradlew runServer` (user-driven).
 
 **Test cases:**
 
-1. Place a tool in slot 0 and the Efficiency X book in slot 1 → result shows Efficiency X; take it and verify the effect in-game.
-2. Combine two Efficiency X books → Efficiency XI.
-3. Confirm the level cost reflects the true level (Efficiency X ≈ 10 levels), not the clamped 5.
-4. Confirm a conflicting enchantment is still rejected (Sharpness X book on a Smite tool).
-5. Set `anvil-high-level-enchant.enabled: false` and reload → the vanilla clamp returns (Efficiency X → Efficiency V).
-6. Confirm normal enchantments (e.g., Efficiency V book) behave exactly as vanilla.
-7. With the default `max-repair-cost: 40`, a book whose computed cost reaches 40 (e.g., a very high-level Sharpness book) is rejected as "too expensive".
-8. Set `max-repair-cost: 200` and reload → the same book now produces a result with the full cost shown (the player needs enough levels to take it).
-9. Set `max-repair-cost: 0` and reload → no book is ever "too expensive" (only the player's XP gates the take).
+1. Efficiency X book + clean pickaxe → result is **Efficiency X**; taking it and mining confirms level X.
+2. Two vanilla Efficiency V books → result is **Efficiency V** (NOT VI).
+3. Two command-given Efficiency X books → result is **Efficiency X** (NOT XI).
+4. Efficiency V book applied to a tool already carrying Efficiency X → **Efficiency X preserved** (no downgrade to V).
+5. Conflicting enchantment still rejected (Sharpness X book on a Smite tool).
+6. `anvil-high-level-enchant.enabled: false` + reload → Efficiency X book clamps to Efficiency V (feature off).
+7. Normal enchantments (Efficiency V book) behave exactly as vanilla.
+8. With default `max-repair-cost: 40`, a multi-enchantment book whose cost reaches 40 is rejected as "too expensive".
+9. Set `max-repair-cost: 200` + reload → the same book now produces a result; `0` removes the cap entirely.
