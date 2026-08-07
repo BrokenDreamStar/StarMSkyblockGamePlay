@@ -4,7 +4,10 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Tag;
+import org.bukkit.World;
 import org.bukkit.block.Block;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.EndPortalFrame;
 import org.bukkit.entity.Player;
@@ -19,6 +22,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import team.starm.starMSkyblockGamePlay.LanguageManager;
 import team.starm.starMSkyblockGamePlay.StarMSkyblockGamePlay;
+
+import java.util.Map;
 
 public class EndPortalGeneratorListener implements Listener {
 
@@ -60,6 +65,14 @@ public class EndPortalGeneratorListener implements Listener {
 
         // Main hand only
         if (event.getHand() != EquipmentSlot.HAND) return;
+
+        // Only allow in the Overworld
+        if (player.getWorld().getEnvironment() != World.Environment.NORMAL) {
+            player.sendActionBar(LegacyComponentSerializer.legacySection()
+                    .deserialize(lang.getColored("end-portal-generator.world-restricted",
+                            Map.of("item-name", plugin.getConfig().getString("end-portal-generator.item-name", "")))));
+            return;
+        }
 
         Block clickedBlock = event.getClickedBlock();
         if (clickedBlock == null) return;

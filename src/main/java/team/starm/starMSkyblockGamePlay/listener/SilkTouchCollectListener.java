@@ -69,28 +69,32 @@ public class SilkTouchCollectListener implements Listener {
         if (!collectibleBlocks.contains(block.getType().name())) return;
 
         BlockState state = block.getState();
-        if (!(state instanceof TileState)) return;
 
         event.setDropItems(false);
         event.setExpToDrop(0);
 
         ItemStack dropItem = new ItemStack(block.getType());
-        dropItem.editMeta(meta -> {
-            // Full block entity NBT (auto-restored by Minecraft on place)
-            if (meta instanceof BlockStateMeta blockStateMeta) {
-                blockStateMeta.setBlockState(state);
-            }
-            // Ominous vault state — BlockDataMeta overrides facing, so store
-            // as a minimal PDC flag and apply manually in onBlockPlace.
-            BlockData blockData = block.getBlockData();
-            if (blockData instanceof org.bukkit.block.data.type.Vault vaultData
-                && vaultData.isOminous()) {
-                meta.getPersistentDataContainer()
-                    .set(ominousKey, PersistentDataType.BOOLEAN, true);
-            }
-        });
 
-        block.getWorld().dropItemNaturally(block.getLocation(), dropItem);
+        // Only attach block entity NBT if this block has one (e.g. SPAWNER, VAULT).
+        // Blocks like BUDDING_AMETHYST have no TileState — just drop the item stack.
+        if (state instanceof TileState ts) {
+            dropItem.editMeta(meta -> {
+                // Full block entity NBT (auto-restored by Minecraft on place)
+                if (meta instanceof BlockStateMeta blockStateMeta) {
+                    blockStateMeta.setBlockState(ts);
+                }
+                // Ominous vault state — BlockDataMeta overrides facing, so store
+                // as a minimal PDC flag and apply manually in onBlockPlace.
+                BlockData blockData = block.getBlockData();
+                if (blockData instanceof org.bukkit.block.data.type.Vault vaultData
+                    && vaultData.isOminous()) {
+                    meta.getPersistentDataContainer()
+                        .set(ominousKey, PersistentDataType.BOOLEAN, true);
+                }
+            });
+        }
+
+        block.getWorld().dropItem(block.getLocation().add(0.5, 0.5, 0.5), dropItem);
     }
 
     @EventHandler(ignoreCancelled = true)

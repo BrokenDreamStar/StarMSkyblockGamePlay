@@ -51,8 +51,10 @@ public final class EntityTypeSpawnEggMapper {
         map.put(EntityType.MAGMA_CUBE, Material.MAGMA_CUBE_SPAWN_EGG);
         map.put(EntityType.MOOSHROOM, Material.MOOSHROOM_SPAWN_EGG);
         map.put(EntityType.MULE, Material.MULE_SPAWN_EGG);
+        map.put(EntityType.NAUTILUS, Material.NAUTILUS_SPAWN_EGG);
         map.put(EntityType.OCELOT, Material.OCELOT_SPAWN_EGG);
         map.put(EntityType.PANDA, Material.PANDA_SPAWN_EGG);
+        map.put(EntityType.PARCHED, Material.PARCHED_SPAWN_EGG);
         map.put(EntityType.PARROT, Material.PARROT_SPAWN_EGG);
         map.put(EntityType.PHANTOM, Material.PHANTOM_SPAWN_EGG);
         map.put(EntityType.PIG, Material.PIG_SPAWN_EGG);
@@ -91,6 +93,7 @@ public final class EntityTypeSpawnEggMapper {
         map.put(EntityType.ZOGLIN, Material.ZOGLIN_SPAWN_EGG);
         map.put(EntityType.ZOMBIE, Material.ZOMBIE_SPAWN_EGG);
         map.put(EntityType.ZOMBIE_HORSE, Material.ZOMBIE_HORSE_SPAWN_EGG);
+        map.put(EntityType.ZOMBIE_NAUTILUS, Material.ZOMBIE_NAUTILUS_SPAWN_EGG);
         map.put(EntityType.ZOMBIE_VILLAGER, Material.ZOMBIE_VILLAGER_SPAWN_EGG);
         map.put(EntityType.ZOMBIFIED_PIGLIN, Material.ZOMBIFIED_PIGLIN_SPAWN_EGG);
         return Collections.unmodifiableMap(map);

@@ -91,7 +91,7 @@ public class SnowballConverterListener implements Listener {
         // Entity type checks
         var entityType = living.getType();
         if (!EntityTypeSpawnEggMapper.hasSpawnEgg(entityType)) {
-            player.sendMessage(lang.getColored("snowball-converter.no-egg"));
+            player.sendActionBar(lang.getComponent("snowball-converter.no-egg", Map.of()));
             return;
         }
 
@@ -102,10 +102,18 @@ public class SnowballConverterListener implements Listener {
         boolean useWhitelist = plugin.getConfig().getBoolean("snowball-converter.use-whitelist", false);
         if (useWhitelist) {
             List<String> whitelist = plugin.getConfig().getStringList("snowball-converter.whitelist");
-            if (!whitelist.contains(entityType.name())) return;
+            if (!whitelist.contains(entityType.name())) {
+                player.sendActionBar(lang.getComponent("snowball-converter.cannot-catch",
+                        Map.of("entity", entityComp)));
+                return;
+            }
         } else {
             List<String> blacklist = plugin.getConfig().getStringList("snowball-converter.blacklist");
-            if (blacklist.contains(entityType.name())) return;
+            if (blacklist.contains(entityType.name())) {
+                player.sendActionBar(lang.getComponent("snowball-converter.cannot-catch",
+                        Map.of("entity", entityComp)));
+                return;
+            }
         }
 
         // Calculate chance
@@ -114,16 +122,15 @@ public class SnowballConverterListener implements Listener {
 
         // Roll
         if (ThreadLocalRandom.current().nextInt(100) >= chance) {
-            player.sendMessage(Component.text("§7捕捉")
-                    .append(entityComp)
-                    .append(Component.text("失败了...")));
+            player.sendActionBar(lang.getComponent("snowball-converter.failed",
+                    Map.of("entity", entityComp)));
             return;
         }
 
         // Success: create spawn egg
         Material eggMaterial = EntityTypeSpawnEggMapper.getSpawnEgg(entityType);
         if (eggMaterial == null) {
-            player.sendMessage(lang.getColored("snowball-converter.no-egg"));
+            player.sendActionBar(lang.getComponent("snowball-converter.no-egg", Map.of()));
             return;
         }
 
@@ -136,11 +143,8 @@ public class SnowballConverterListener implements Listener {
             loc.getWorld().dropItemNaturally(loc, leftover.values().iterator().next());
         }
 
-        player.sendMessage(Component.text("§a捕捉")
-                .append(entityComp)
-                .append(Component.text("成功 已获得"))
-                .append(entityComp)
-                .append(Component.text("刷怪蛋x1")));
+        player.sendActionBar(lang.getComponent("snowball-converter.converted",
+                    Map.of("entity", entityComp)));
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

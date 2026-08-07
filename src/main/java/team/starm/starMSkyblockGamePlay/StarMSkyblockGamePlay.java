@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import team.starm.starMSkyblockGamePlay.listener.EndPortalGeneratorListener;
 import team.starm.starMSkyblockGamePlay.listener.HighLevelEnchantListener;
 import team.starm.starMSkyblockGamePlay.listener.LightningGuardianConvertListener;
+import team.starm.starMSkyblockGamePlay.listener.SculkShriekerListener;
 import team.starm.starMSkyblockGamePlay.listener.SilkTouchCollectListener;
 import team.starm.starMSkyblockGamePlay.listener.SnowballConverterListener;
 import team.starm.starMSkyblockGamePlay.listener.TrialSpawnerListener;
@@ -39,6 +40,7 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SnowballConverterListener(this), this);
         getServer().getPluginManager().registerEvents(new LightningGuardianConvertListener(this), this);
         getServer().getPluginManager().registerEvents(new EndPortalGeneratorListener(this), this);
+        getServer().getPluginManager().registerEvents(new SculkShriekerListener(this), this);
         getServer().getPluginManager().registerEvents(new HighLevelEnchantListener(this), this);
     }
 
@@ -103,6 +105,7 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
 
             ItemStack snowball = new ItemStack(Material.SNOWBALL, amount);
             snowball.editMeta(meta -> {
+                meta.setEnchantmentGlintOverride(true);
                 meta.getPersistentDataContainer().set(flagKey, PersistentDataType.BOOLEAN, true);
                 if (finalChance > 0) {
                     meta.getPersistentDataContainer().set(chanceKey, PersistentDataType.INTEGER, finalChance);
@@ -156,6 +159,7 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
 
             ItemStack eye = new ItemStack(Material.ENDER_EYE, amount);
             eye.editMeta(meta -> {
+                meta.setEnchantmentGlintOverride(true);
                 meta.getPersistentDataContainer().set(portalKey, PersistentDataType.BOOLEAN, true);
                 String itemName = getConfig().getString("end-portal-generator.item-name");
                 if (itemName != null && !itemName.isEmpty()) {

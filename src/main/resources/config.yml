@@ -1,5 +1,6 @@
 # StarMSkyblockGamePlay 配置
 
+# 试炼刷怪笼功能（右键试炼刷怪笼使用铜块减少冷却时间）
 trial-spawner:
   # 每个铜块减少的冷却时间（单位：tick）
   cooldown-reduction-ticks: 3600
@@ -8,6 +9,7 @@ trial-spawner:
   # 禁止使用刷怪蛋替换试炼刷怪笼
   prevent-ominous-spawn-egg: true
 
+# 宝库功能（右键宝库消耗 1 个铜块，将玩家从奖励黑名单移除）
 vault:
   # 是否启用宝库功能
   enabled: true
@@ -16,6 +18,7 @@ vault:
   # 每日刷新时间（24小时制，HH:mm 格式）
   reset-time: '04:00'
 
+# 不祥宝库功能（右键不祥宝库消耗 1 个铜块，将玩家从奖励黑名单移除）
 ominous-vault:
   # 是否启用不祥宝库功能
   enabled: true
@@ -108,11 +111,11 @@ snowball-converter:
     - ZOMBIFIED_PIGLIN #僵尸猪灵
   # 黑名单生物类型列表（EntityType 枚举名，白名单模式下不生效）
   blacklist:
-    - WARDEN
-    - WANDERING_TRADER
-    - VILLAGER
-    - IRON_GOLEM
-    - ELDER_GUARDIAN
+    - WARDEN #监守者
+    - WANDERING_TRADER #流浪商人
+    - VILLAGER #村民
+    - IRON_GOLEM #铁傀儡
+    - ELDER_GUARDIAN #远古守卫者
   # 独立转换概率（按生物类型覆盖全局概率，未配置的实体使用全局概率）
   mob-chances:
     DOLPHIN: 50 #海豚
@@ -156,6 +159,11 @@ end-portal-generator:
   # 物品 Lore 描述（每行一条）
   lore:
     - "&7右键点击方块以生成末地传送门"
+
+# 回响碎片强化尖啸体（右键幽匿尖啸体消耗 1 个回响碎片，使其可召唤监守者）
+sculk-shrieker:
+  # 是否启用该功能
+  enabled: true
 
 # 铁砧超等级附魔书（允许应用超过原版最高等级的附魔书，如效率10）
 anvil-high-level-enchant:
