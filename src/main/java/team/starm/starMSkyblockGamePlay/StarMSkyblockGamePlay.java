@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import team.starm.starMSkyblockGamePlay.listener.DripstoneGrowthListener;
 import team.starm.starMSkyblockGamePlay.listener.EndPortalGeneratorListener;
 import team.starm.starMSkyblockGamePlay.listener.HighLevelEnchantListener;
 import team.starm.starMSkyblockGamePlay.listener.LightningGuardianConvertListener;
@@ -26,6 +27,7 @@ import java.util.Map;
 public final class StarMSkyblockGamePlay extends JavaPlugin {
 
     private LanguageManager languageManager;
+    private DripstoneGrowthListener dripstoneGrowthListener;
 
     @Override
     public void onEnable() {
@@ -42,6 +44,9 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new EndPortalGeneratorListener(this), this);
         getServer().getPluginManager().registerEvents(new SculkShriekerListener(this), this);
         getServer().getPluginManager().registerEvents(new HighLevelEnchantListener(this), this);
+        dripstoneGrowthListener = new DripstoneGrowthListener(this);
+        getServer().getPluginManager().registerEvents(dripstoneGrowthListener, this);
+        dripstoneGrowthListener.startGrowthTask();
     }
 
     @Override
@@ -251,5 +256,8 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (dripstoneGrowthListener != null) {
+            dripstoneGrowthListener.stopGrowthTask();
+        }
     }
 }
