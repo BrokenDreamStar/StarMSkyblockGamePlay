@@ -47,15 +47,38 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # 从 CHANGELOG.md 提取当前版本的更新日志，写入 release_body.md
+      - name: Extract changelog for version
+        id: changelog
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python3 - "$VERSION" <<'EOF'
+          import sys
+          version = sys.argv[1]
+          lines = open('CHANGELOG.md', encoding='utf-8').read().splitlines()
+          start = None
+          end = len(lines)
+          for i, line in enumerate(lines):
+              if line.startswith('## [') and f'## [{version}]' in line:
+                  start = i
+              elif start is not None and line.startswith('## ['):
+                  end = i
+                  break
+          if start is None:
+              print(f"::error::CHANGELOG.md 中未找到版本 {version} 的条目")
+              sys.exit(1)
+          body = '# StarMSkyblockGamePlay v' + version + '\n\n' + '\n'.join(lines[start:end]).strip() + '\n'
+          with open('release_body.md', 'w', encoding='utf-8') as f:
+              f.write(body)
+          EOF
+
       - name: Publish Release
         if: steps.check_release.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: StarMSkyblockGamePlay v${{ steps.version.outputs.version }}
-          body: |
-            ## StarMSkyblockGamePlay v${{ steps.version.outputs.version }}
-
-            构建产物：StarMSkyblockGamePlay-v${{ steps.version.outputs.version }}.jar
+          body_path: release_body.md
           files: build/libs/StarMSkyblockGamePlay-*.jar
           fail_on_unmatched_files: true
