@@ -89,3 +89,27 @@ dripstone-growth:
    - 验证炼药锅填充、泥巴→黏土同步加速;
    - 验证 `enabled: false` 时行为与原版完全一致;
    - 验证 `reload` 后配置变更生效。
+
+## 性能修复(2026-08-07,版本 1.0.2)
+
+### 问题
+
+原实现"每 tick 扫描 1 个已加载区块"的做法,每个区块需全高度遍历 98,304 个方块,
+每次 `chunk.getBlock(x,y,z)` 分配新 `CraftBlock` 对象再 `getType()`。Spark 采样显示
+`DripstoneGrowthListener` 链占主线程约 19% 时间(`CraftBlock::getType` 73,240 +
+`CraftBlock::getBlockState` 62,248 时间单位),叠加对象分配的 GC 压力,M2 上 mspt 翻倍。
+
+### 修复:事件索引替代全量扫描
+
+1. **BlockPlaceEvent 增量索引**:放置滴水石锥/滴水石块/水源时,检查是否构成有效
+   钟乳石结构(尖端 → 链 → 滴水石块 → 上方水源),把尖端位置记入索引(每次 O(7) 读取)。
+2. **定时任务只遍历索引**:每 `check-interval-ticks`(默认 100)对每个索引结构校验 +
+   触发 `randomTick()` × `random-ticks-per-pass`(默认 10);生长后索引下移到新尖端,
+   结构破坏时经校验自动移除。
+3. **启动一次性补建 + 周期性纠偏**:启动时对已加载区块做一次全量扫描(每 tick 限量
+   `scan-chunks-per-tick` 摊开),覆盖插件安装前已存在的结构;之后每
+   `rescan-interval-minutes`(默认 10,0=关闭)纠偏一次。
+4. 配置变更:`chunks-per-tick` 移除,新增 `check-interval-ticks`、
+   `rescan-interval-minutes`、`scan-chunks-per-tick`。生长速度语义不变
+   (每结构每秒随机刻 = `random-ticks-per-pass × 20 ÷ check-interval-ticks`,
+   默认仍为 2 次/秒 ≈ 44 秒/格)。
