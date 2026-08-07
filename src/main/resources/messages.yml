@@ -3,26 +3,61 @@
 # 占位符格式: {placeholder_name}
 
 trial-spawner:
+  # 该试炼刷怪笼不在冷却中
   not-in-cooldown: "&c该试炼刷怪笼不在冷却中"
-  cooldown-ended: "&a消耗 1 个铜块，试炼刷怪笼已刷新！"
-  cooldown-reduced: "&a消耗 1 个铜块，冷却缩减 &e{reduction_seconds} &a秒！剩余冷却 &e{remaining_seconds} &a秒"
+  # 冷却已结束
+  cooldown-ended: "&a试炼刷怪笼已刷新！"
+  # 冷却缩减成功
+  cooldown-reduced: "&a冷却缩减 &e{reduction_seconds} &a秒！剩余冷却 &e{remaining_seconds} &a秒"
 
 vault:
+  # 玩家不在黑名单中，无法刷新
   not-in-blacklist: "&c该{vault_type}无法刷新"
+  # 达到每日次数上限
   limit-reached: "&c你今天已刷新{vault_type} {count}/{limit} 次"
-  removed: "&a消耗 1 个铜块，已刷新{vault_type}"
+  # 刷新成功（无每日上限时使用）
+  removed: "&a已刷新{vault_type}"
+  # 刷新成功（有每日上限时显示已用/上限）
+  removed-with-count: "&a已刷新{vault_type} ({count}/{limit})"
 
 vault-types:
+  # 普通宝库名称
   normal: "宝库"
+  # 不祥宝库名称
   ominous: "不祥宝库"
 
 logger:
+  # 无法创建 vault-data.yml
   vault-data-create-error: "无法创建 vault-data.yml: {error}"
+  # 无法保存 vault-data.yml
   vault-data-save-error: "无法保存 vault-data.yml: {error}"
+  # 每日次数已重置
   vault-daily-reset: "{vault_name} 每日次数已重置"
 
 snowball-converter:
-  converted: "&a捕捉{entity}成功 已获得{entity}刷怪蛋x1"
+  # 捕捉成功
+  converted: "&a捕捉{entity}成功 已获得{entity}刷怪蛋 "
+  # 捕捉失败（概率未命中）
   failed: "&7捕捉{entity}失败了..."
+  # 该生物没有对应的刷怪蛋
   no-egg: "&c该生物没有对应的刷怪蛋"
+  # 该生物被白名单/黑名单排除，无法捕捉
+  cannot-catch: "&c该生物无法捕捉"
+  # 给予雪球成功
   give-snowball: "&a已给予 {player} {amount} 个{item-name}"
+
+end-portal-generator:
+  # 传送门已生成
+  generated: "&a已生成末地传送门！"
+  # 传送门生成失败（方块被阻挡）
+  blocked: "&c传送门框架位置被阻挡，无法生成传送门！"
+  # 命令给予成功
+  give-success: "&a已将 {amount} 个{item-name}给予玩家 {player}"
+  # 只能在主世界使用
+  world-restricted: "&c{item-name}&c只能在主世界使用"
+
+sculk-shrieker:
+  # 成功激活（消耗 1 个回响碎片）
+  activated: "&a已激活幽匿尖啸体!"
+  # 该尖啸体已处于可召唤状态
+  already-activated: "&c该尖啸体已处于激活状态"

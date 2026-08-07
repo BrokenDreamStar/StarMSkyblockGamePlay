@@ -1,5 +1,6 @@
 # StarMSkyblockGamePlay 配置
 
+# 试炼刷怪笼功能（右键试炼刷怪笼使用铜块减少冷却时间）
 trial-spawner:
   # 每个铜块减少的冷却时间（单位：tick）
   cooldown-reduction-ticks: 3600
@@ -8,6 +9,7 @@ trial-spawner:
   # 禁止使用刷怪蛋替换试炼刷怪笼
   prevent-ominous-spawn-egg: true
 
+# 宝库功能（右键宝库消耗 1 个铜块，将玩家从奖励黑名单移除）
 vault:
   # 是否启用宝库功能
   enabled: true
@@ -16,6 +18,7 @@ vault:
   # 每日刷新时间（24小时制，HH:mm 格式）
   reset-time: '04:00'
 
+# 不祥宝库功能（右键不祥宝库消耗 1 个铜块，将玩家从奖励黑名单移除）
 ominous-vault:
   # 是否启用不祥宝库功能
   enabled: true
@@ -33,33 +36,138 @@ silk-touch-collectibles:
     - SPAWNER
     - TRIAL_SPAWNER
     - VAULT
+    - BUDDING_AMETHYST
 
 # 雪球转换功能（击中生物有概率转换为对应刷怪蛋）
 snowball-converter:
   # 是否启用该功能
   enabled: true
   # 全局转换概率（百分比 0-100）
-  global-chance: 50
+  global-chance: 75
   # 雪球物品显示名称（支持 & 颜色代码，留空则不设置名称）
   item-name: "&d&l精灵球"
   # 雪球物品 Lore 描述（支持 & 颜色代码，每行一个）
   lore:
-    - "&d击中生物时有50%概率将其捕捉为刷怪蛋"
+    - "&d击中生物时有概率将其捕捉为刷怪蛋"
     - "&e请在菜单的帮助页面查看可捕捉生物列表"
   # 是否启用白名单模式（true=仅白名单内生物可转换，false=黑名单模式）
-  use-whitelist: false
+  use-whitelist: true
   # 白名单生物类型列表（use-whitelist: true 时生效，EntityType 枚举名）
   whitelist:
-    - ZOMBIE
-    - SKELETON
-    - CREEPER
+    - ALLAY #悦灵
+    - ARMADILLO #犰狳
+    - BAT #蝙蝠
+    - CAMEL #骆驼
+    - CHICKEN #鸡
+    - COW #牛
+    - DONKEY #驴
+    - HORSE #马
+    - MULE #骡子
+    - PARROT #鹦鹉
+    - PIG #猪
+    - RABBIT #兔子
+    - SHEEP #绵羊
+    - SKELETON_HORSE #骷髅马
+    - STRIDER #炽足兽
+    - TURTLE #海龟
+    - ZOMBIE_HORSE #僵尸马
+    - GOAT #山羊
+    - AXOLOTL #美西螈
+    - CAT #猫
+    - FROG #青蛙
+    - OCELOT #豹猫
+    - BEE #蜜蜂
+    - DOLPHIN #海豚
+    - FOX #狐狸
+    - LLAMA #羊驼
+    - NAUTILUS #鹦鹉螺
+    - POLAR_BEAR #北极熊
+    - WOLF #狼
+    - ZOMBIE_NAUTILUS #僵尸鹦鹉螺
+    - BLAZE #烈焰人
+    - BOGGED #沼骸
+    - BREEZE #旋风人
+    - CREEPER #苦力怕
+    - ELDER_GUARDIAN #远古守卫者
+    - GHAST #恶魂
+    - GUARDIAN #守卫者
+    - HOGLIN #疣猪兽
+    - HUSK #尸壳
+    - MAGMA_CUBE #岩浆怪
+    - PARCHED #焦骸
+    - PILLAGER #掠夺者
+    - SHULKER #潜影贝
+    - SKELETON #骷髅
+    - SLIME #史莱姆
+    - STRAY #流浪者
+    - VEX #恼鬼
+    - WITCH #女巫
+    - WITHER_SKELETON #凋灵骷髅
+    - ZOGLIN #僵尸疣猪兽
+    - ZOMBIE #僵尸
+    - CAVE_SPIDER #洞穴蜘蛛
+    - DROWNED #溺尸
+    - SPIDER #蜘蛛
+    - ZOMBIFIED_PIGLIN #僵尸猪灵
   # 黑名单生物类型列表（EntityType 枚举名，白名单模式下不生效）
   blacklist:
-    - WARDEN
-    - WANDERING_TRADER
-    - VILLAGER
-    - IRON_GOLEM
-    - ELDER_GUARDIAN
-  # 独立转换概率（按生物类型覆盖全局概率）
+    - WARDEN #监守者
+    - WANDERING_TRADER #流浪商人
+    - VILLAGER #村民
+    - IRON_GOLEM #铁傀儡
+    - ELDER_GUARDIAN #远古守卫者
+  # 独立转换概率（按生物类型覆盖全局概率，未配置的实体使用全局概率）
   mob-chances:
-    ZOMBIE: 50
+    DOLPHIN: 50 #海豚
+    SKELETON_HORSE: 50 #骷髅马
+    ZOMBIE_HORSE: 50 #僵尸马
+    CAVE_SPIDER: 50 #洞穴蜘蛛
+    CREEPER: 50 #苦力怕
+    SKELETON: 50 #骷髅
+    SLIME: 50 #史莱姆
+    SPIDER: 50 #蜘蛛
+    ZOMBIE: 50 #僵尸
+    BOGGED: 50 #沼骸
+    DROWNED: 50 #溺尸
+    GUARDIAN: 50 #守卫者
+    HUSK: 50 #尸壳
+    MAGMA_CUBE: 50 #岩浆怪
+    PILLAGER: 50 #掠夺者
+    STRAY: 50 #流浪者
+    WITCH: 50 #女巫
+    PARCHED: 50 #焦骸
+    ZOMBIFIED_PIGLIN: 50 #僵尸猪灵
+    BLAZE: 50 #烈焰人
+    BREEZE: 50 #旋风人
+    GHAST: 50 #恶魂
+    SHULKER: 50 #潜影贝
+    VEX: 50 #恼鬼
+    WITHER_SKELETON: 50 #凋灵骷髅
+    ELDER_GUARDIAN: 25 #远古守卫者
+
+# 闪电转化功能（闪电命中守卫者时将其转化为远古守卫者）
+lightning-converter:
+  # 是否启用该功能
+  enabled: true
+
+# 末地传送门生成器（使用带有特殊 NBT 的末影之眼右键点击方块生成末地传送门）
+end-portal-generator:
+  # 是否启用该功能
+  enabled: true
+  # 物品显示名称（支持 & 颜色代码，留空则不设置）
+  item-name: "&5&l传送门生成器"
+  # 物品 Lore 描述（每行一条）
+  lore:
+    - "&7右键点击方块以生成末地传送门"
+
+# 回响碎片强化尖啸体（右键幽匿尖啸体消耗 1 个回响碎片，使其可召唤监守者）
+sculk-shrieker:
+  # 是否启用该功能
+  enabled: true
+
+# 铁砧超等级附魔书（允许应用超过原版最高等级的附魔书，如效率10）
+anvil-high-level-enchant:
+  # 是否启用该功能
+  enabled: true
+  # 铁砧"过于昂贵"的经验花费上限（原版为 40；设为 0 或负数表示不设上限）
+  max-repair-cost: 40

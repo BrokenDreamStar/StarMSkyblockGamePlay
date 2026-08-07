@@ -1,5 +1,7 @@
 package team.starm.starMSkyblockGamePlay;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -80,6 +82,57 @@ public class LanguageManager {
             }
         }
         return translateColors(message);
+    }
+
+    /**
+     * 获取已翻译颜色代码并替换占位符的 Adventure Component。
+     * 占位符会被替换为对应的 Component 对象（如 translatable entity name），
+     * 文本段落的 & 颜色代码会正确解析为 Component 样式。
+     *
+     * @param path                  YAML 路径
+     * @param componentPlaceholders 占位符映射，值可以是任意 Adventure Component
+     */
+    public Component getComponent(String path, Map<String, Component> componentPlaceholders) {
+        String raw = getRaw(path);
+        String colored = translateColors(raw);
+
+        Component result = Component.empty();
+        String remaining = colored;
+
+        while (!remaining.isEmpty()) {
+            // 找到最早出现的占位符
+            int earliest = -1;
+            String earliestKey = null;
+            for (String key : componentPlaceholders.keySet()) {
+                String ph = "{" + key + "}";
+                int idx = remaining.indexOf(ph);
+                if (idx >= 0 && (earliest < 0 || idx < earliest)) {
+                    earliest = idx;
+                    earliestKey = key;
+                }
+            }
+
+            if (earliestKey == null) {
+                // 没有更多占位符，剩余文本作为普通文本段落解析
+                result = result.append(LegacyComponentSerializer.legacySection().deserialize(remaining));
+                break;
+            }
+
+            // 占位符前的文本段落（解析 &/§ 颜色代码）
+            if (earliest > 0) {
+                result = result.append(
+                        LegacyComponentSerializer.legacySection().deserialize(remaining.substring(0, earliest))
+                );
+            }
+
+            // 占位符对应的 Component
+            result = result.append(componentPlaceholders.get(earliestKey));
+
+            // 跳过已处理的占位符
+            remaining = remaining.substring(earliest + earliestKey.length() + 2);
+        }
+
+        return result;
     }
 
     /**

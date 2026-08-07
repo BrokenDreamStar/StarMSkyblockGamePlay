@@ -117,6 +117,7 @@ public class VaultListener implements Listener {
         }
 
         int removalLimit = plugin.getConfig().getInt(configPath + ".blacklist-removal-limit", 5);
+        int usedCount = 0;
 
         if (removalLimit > 0) {
             String basePath = "players." + player.getUniqueId() + "." + dataPrefix + "vault";
@@ -143,6 +144,7 @@ public class VaultListener implements Listener {
             }
 
             dataConfig.set(basePath + ".removals", removalCount + 1);
+            usedCount = removalCount + 1;
             saveData();
         }
 
@@ -156,7 +158,15 @@ public class VaultListener implements Listener {
         vault.update();
 
         String vaultType = lang.getColored(isOminous ? "vault-types.ominous" : "vault-types.normal");
-        player.sendActionBar(lang.getColored("vault.removed", Map.of("vault_type", vaultType)));
+        if (removalLimit > 0) {
+            player.sendActionBar(lang.getColored("vault.removed-with-count", Map.of(
+                    "vault_type", vaultType,
+                    "count", String.valueOf(usedCount),
+                    "limit", String.valueOf(removalLimit)
+            )));
+        } else {
+            player.sendActionBar(lang.getColored("vault.removed", Map.of("vault_type", vaultType)));
+        }
     }
 
     public void startResetTask() {
