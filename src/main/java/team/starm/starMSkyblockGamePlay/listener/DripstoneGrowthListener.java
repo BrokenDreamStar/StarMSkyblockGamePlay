@@ -58,8 +58,8 @@ public class DripstoneGrowthListener implements Listener {
         List<World> worlds = getTargetWorlds();
         if (worlds.isEmpty()) return;
 
-        int chunksPerTick = plugin.getConfig().getInt("dripstone-growth.chunks-per-tick", 1);
-        int randomTicksPerPass = Math.max(1, plugin.getConfig().getInt("dripstone-growth.random-ticks-per-pass", 10));
+        int chunksPerTick = Math.max(0, plugin.getConfig().getInt("dripstone-growth.chunks-per-tick", 1));
+        int randomTicksPerPass = Math.clamp(plugin.getConfig().getInt("dripstone-growth.random-ticks-per-pass", 10), 1, 1000);
 
         // 游标越界(世界数量变化或上一轮结束)→ 从零开始新一轮
         if (worldIndex >= worlds.size()) {
