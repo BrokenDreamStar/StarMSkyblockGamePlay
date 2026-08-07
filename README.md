@@ -1,6 +1,6 @@
 # StarMSkyblockGamePlay
 
-一个基于 [Paper](https://papermc.io/) 的空岛服务器玩法扩展插件，集成了试炼刷怪笼冷却缩减、宝库黑名单移除、精准采集完整方块、雪球捕捉生物、末地传送门生成器、幽匿尖啸体强化、铁砧超等级附魔书等功能。
+一个基于 [Paper](https://papermc.io/) 的空岛服务器玩法扩展插件，集成了试炼刷怪笼冷却缩减、宝库黑名单移除、精准采集完整方块、雪球捕捉生物、末地传送门生成器、幽匿尖啸体强化、铁砧超等级附魔书、滴水石锥加速生长等功能。
 
 - **作者**: [BrokenDream_Star](https://github.com/BrokenDreamStar)、DeepSeek
 - **网站**: https://starm.team/
@@ -29,6 +29,9 @@
 - 📖 **铁砧超等级附魔书**
   - 允许在铁砧上应用超过原版最高等级的附魔书（如效率 X）
   - 铁砧"过于昂贵"的经验花费上限可在配置中调整
+- 💧 **滴水石锥加速生长**
+  - 对符合条件的钟乳石结构定期触发随机刻，生长速度提升约 100 倍（约 44 秒/格）
+  - 顺带加速炼药锅填充与泥巴 → 黏土转化，保持原版生长规则不变
 
 ## 环境要求
 
@@ -67,5 +70,8 @@
 - `snowball-converter.use-whitelist` / `whitelist` / `blacklist` — 雪球转换生物过滤
 - `end-portal-generator.item-name` / `lore` — 传送门生成器物品显示
 - `anvil-high-level-enchant.max-repair-cost` — 铁砧"过于昂贵"经验上限（原版为 40）
+- `dripstone-growth.random-ticks-per-pass` / `check-interval-ticks` — 滴水石锥生长速度调节
+- `dripstone-growth.rescan-interval-minutes` / `scan-chunks-per-tick` — 结构索引纠偏扫描
+- `dripstone-growth.worlds` — 滴水石锥加速生效的世界列表（留空=所有世界）
 
 玩家可见的提示消息可在 `messages.yml` 中自定义。
