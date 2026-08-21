@@ -5,6 +5,8 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.Configuration;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
@@ -17,6 +19,7 @@ import team.starm.starMSkyblockGamePlay.listener.LightningGuardianConvertListene
 import team.starm.starMSkyblockGamePlay.listener.SculkShriekerListener;
 import team.starm.starMSkyblockGamePlay.listener.SilkTouchCollectListener;
 import team.starm.starMSkyblockGamePlay.listener.SnowballConverterListener;
+import team.starm.starMSkyblockGamePlay.listener.SpawnerUpgradeListener;
 import team.starm.starMSkyblockGamePlay.listener.TrialSpawnerListener;
 import team.starm.starMSkyblockGamePlay.listener.VaultListener;
 
@@ -32,9 +35,11 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        fillMissingConfigKeys();
         this.languageManager = new LanguageManager(this);
 
         getServer().getPluginManager().registerEvents(new TrialSpawnerListener(this), this);
+        getServer().getPluginManager().registerEvents(new SpawnerUpgradeListener(this), this);
         VaultListener vaultListener = new VaultListener(this);
         getServer().getPluginManager().registerEvents(vaultListener, this);
         vaultListener.startResetTask();
@@ -67,8 +72,17 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
 
         if (args[0].equalsIgnoreCase("reload")) {
             reloadConfig();
-            languageManager.reloadMessages();
-            sender.sendMessage("§aStarMSkyblockGamePlay 配置已重载。");
+            boolean configFilled = fillMissingConfigKeys();
+            boolean messagesFilled = languageManager.reloadMessages();
+            if (configFilled && messagesFilled) {
+                sender.sendMessage("§aStarMSkyblockGamePlay 配置已重载（已自动补全缺失的配置项与消息项）。");
+            } else if (configFilled) {
+                sender.sendMessage("§aStarMSkyblockGamePlay 配置已重载（已自动补全缺失配置项）。");
+            } else if (messagesFilled) {
+                sender.sendMessage("§aStarMSkyblockGamePlay 配置已重载（已自动补全缺失消息项）。");
+            } else {
+                sender.sendMessage("§aStarMSkyblockGamePlay 配置已重载。");
+            }
             getLogger().info("配置与消息已重载（由 " + sender.getName() + " 执行）。");
             return true;
         }
@@ -248,6 +262,30 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
                 .filter(s -> s.toLowerCase().startsWith(prefix.toLowerCase()))
                 .sorted()
                 .toList();
+    }
+
+    /**
+     * 若 config.yml 缺少默认配置中的键，则从打包默认值补全并写回磁盘。
+     * 仅在确实存在缺失键时才重写文件，避免破坏全新安装文件的注释。
+     *
+     * @return 是否执行了补全
+     */
+    private boolean fillMissingConfigKeys() {
+        Configuration defaults = getConfig().getDefaults();
+        if (defaults == null) {
+            return false;
+        }
+
+        // 注意:不能用 contains() 判断缺失 —— 它会回退到默认值,导致永远返回 true。
+        // getKeys(true) 只返回配置文件自身存在的键,与默认键集对比才能找出缺失项。
+        if (getConfig().getKeys(true).containsAll(defaults.getKeys(true))) {
+            return false;
+        }
+
+        getConfig().options().copyDefaults(true);
+        saveConfig();
+        getLogger().info("检测到 config.yml 缺少配置项，已自动补全。");
+        return true;
     }
 
     public LanguageManager getLanguageManager() {

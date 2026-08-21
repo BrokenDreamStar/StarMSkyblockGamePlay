@@ -103,6 +103,18 @@ public final class EntityTypeSpawnEggMapper {
         return SPAWN_EGG_MAP.get(type);
     }
 
+    /**
+     * 根据刷怪蛋物品材质反查对应的生物类型（未收录则返回 null）。
+     */
+    public static EntityType getEntityTypeByEgg(Material egg) {
+        for (var entry : SPAWN_EGG_MAP.entrySet()) {
+            if (entry.getValue() == egg) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
     public static boolean hasSpawnEgg(EntityType type) {
         return SPAWN_EGG_MAP.containsKey(type);
     }
