@@ -5,13 +5,32 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [1.0.3] - 2026-08-21
+
+### 新增
+
+- **水中快速氧化**：当铜方块及其变种、铜傀儡在水中时加速其氧化
+  - 铜方块：未上蜡、未满氧化的铜家族方块（铜块、切制铜、台阶/楼梯、活板门、门、栅栏、
+    锁链、灯、栏杆、铜储物箱、避雷针等）在水中（自身水浸或轴向邻接水）时，每隔
+    `check-interval-ticks`（默认 600 tick = 30 秒）对其调用**真实 `randomTick()`** 一次
+    （`random-ticks-per-pass`，默认 1），由原版预氧化/晋级逻辑驱动；孤立湿铜平均约
+    10 分钟氧化一阶段
+  - 铜傀儡：未被上蜡的铜傀儡在水中时，平均每 `golem-random-tick-interval-seconds`
+    （默认 900 秒 = 平均约 15 分钟）被随机刻选中一次，选中即氧化一阶段（实体无 randomTick，按抽取模型）
+  - 上蜡的方块/铜傀儡不会氧化；已完全氧化的不再有下一阶段
+  - 通过放置/水流/破块事件增量维护“湿铜”索引，启动全量补建 + 周期性纠偏，避免持续全量扫描
+  - 新增配置段 `copper-oxidation`（`enabled` / `worlds` / `check-interval-ticks` /
+    `random-ticks-per-pass` / `golem-random-tick-interval-seconds` /
+    `rescan-interval-minutes` / `scan-chunks-per-tick`）
+
+### 变更
+
+- 插件版本号提升至 1.0.3
 
 ## [1.0.2] - 2026-08-21
 
 ### 新增
 
-- **配置自动补全**：启动与 `/starmskyblockgameplay reload` 时，若 `config.yml` / `messages.yml` 缺失新版本配置项，自动从打包默认值补全并写回磁盘（不删除旧键，全新安装文件不被重写）
 - **精灵球返还**：增强精灵球未命中生物、或命中无法捕捉的生物（无刷怪蛋、被白名单/黑名单排除、概率为 0）时，将精灵球返还给投掷者
   - 返还的精灵球保留原自定义捕捉概率与物品名称/Lore
   - 背包已满时掉落在玩家脚下
@@ -24,10 +43,6 @@
   - 空手右键刷怪笼（查询）或用匹配刷怪蛋喂养时，都在**动作栏**显示已放入的刷怪蛋数量与当前效率
   - 已喂蛋数与基准刷怪参数持久化在刷怪笼方块的 PDC 中，服务器重启与精准采集搬运均保留
   - 新增消息键：`spawner-upgrade.fed` / `status` / `confirm-warning` / `max-reached` / `replaced`
-
-### 变更
-
-- 插件版本号提升至 1.0.2
 
 ## [1.0.1] - 2026-08-07
 
