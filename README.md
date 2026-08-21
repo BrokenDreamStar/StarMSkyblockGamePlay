@@ -40,6 +40,11 @@
   - 对已强化的刷怪笼使用不匹配的刷怪蛋时，先警告会清空强化（二次右键确认后才替换），避免误操作毁掉强化
   - 替换生物时强化重置为原版（避免免费继承效率）
   - 已喂蛋数随方块 NBT 持久化（服务器重启、精准采集搬运均保留）
+- 💧 **水中快速氧化**
+  - 铜方块及其变种（铜块、切制铜、台阶/楼梯、活板门、门、栅栏、锁链、灯、栏杆、避雷针、铜储物箱等）在水中时定时调用**真实 randomTick()** 加速氧化（原版预氧化/晋级逻辑驱动，保留分组减速等原版规则），平均约 10 分钟氧化一阶段
+  - 未上蜡的铜傀儡在水中时按随机刻抽取加速，平均约 15 分钟氧化一阶段
+  - 上蜡的方块与铜傀儡不会氧化；已完全氧化的不再有下一阶段
+  - 速度可用 `random-ticks-per-pass` / `golem-random-tick-interval-seconds` 调节
 
 ## 环境要求
 
@@ -83,5 +88,8 @@
 - `dripstone-growth.rescan-interval-minutes` / `scan-chunks-per-tick` — 结构索引纠偏扫描
 - `dripstone-growth.worlds` — 滴水石锥加速生效的世界列表（留空=所有世界）
 - `spawner-upgrade.max-eggs` / `max-multiplier` / `base-spawn-count` / `eggs-per-extra-mob` — 刷怪笼刷怪蛋强化达到最大效率所需蛋数、CD 缩短倍率、统一的初始每次数量与每加 1 只所需蛋数；只有与已有生物匹配的刷怪蛋能强化，否则放行原版替换生物并重置强化
+- `copper-oxidation.random-ticks-per-pass` — 每轮对每个水中铜方块调用 `randomTick()` 的次数（与 `check-interval-ticks` 一起决定速度，默认约 8 分钟/阶段）
+- `copper-oxidation.golem-random-tick-interval-seconds` — 水中铜傀儡平均每多少秒被随机刻选中一次（默认 600 = 约 10 分钟氧化一阶段）
+- `copper-oxidation.check-interval-ticks` / `worlds` — 水中快速氧化的触发轮间隔与生效世界列表
 
 玩家可见的提示消息可在 `messages.yml` 中自定义。

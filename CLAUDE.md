@@ -14,7 +14,7 @@ This is a Gradle 9.6.1 project using Kotlin DSL and Java 25 toolchain. Configura
 
 **StarMSkyblockGamePlay** is a PaperMC plugin for a Skyblock game mode. The single entrypoint is `StarMSkyblockGamePlay extends JavaPlugin`, which registers all listeners on `onEnable` and starts the Vault daily-reset scheduler. There is no command system — all features are purely event-driven.
 
-### Three Feature Modules (all in `listener/`)
+### Feature Modules (all in `listener/`)
 
 Each listener is independent, receives the plugin instance in its constructor, and reads its own section of `config.yml`.
 
@@ -24,6 +24,8 @@ Each listener is independent, receives the plugin instance in its constructor, a
 
 3. **SilkTouchCollectListener** — When a player breaks a configurable block type with a Silk Touch tool, the block's full NBT state is serialized into the item's `PersistentDataContainer` (via `NamespacedKey` + YAML string) and the block does not drop its default loot. On `BlockPlaceEvent`, the stored state is deserialized and applied back to the new block. Supports three block types: `CreatureSpawner`, `TrialSpawner`, and `Vault`, each with their own serialized fields.
 
+4. **CopperOxidationListener** — When copper blocks (and their oxidizable variants) are wet (waterlogged / adjacent to water), accelerate oxidation by calling the real `Block#randomTick()` on them each processing round (every `copper-oxidation.check-interval-ticks`, `random-ticks-per-pass` times per block) — vanilla pre-oxidation/advance logic drives the change. The wet-copper index (`NEXT_OXIDATION` chain map) excludes waxed and fully-oxidized blocks. Non-waxed copper golems in water instead advance via `CopperGolem#setWeatheringState` after a probabilistic random-tick-style selection (`copper-oxidation.golem-random-tick-interval-seconds`, ~10 min/stage). Both indices are event-driven: wet-copper via place / water-flow / break with an initial full scan and periodic rescan (`copper-oxidation.rescan-interval-minutes`), golems via `EntityAddToWorldEvent`/`EntityRemoveFromWorldEvent` with a one-time startup scan, so no per-round full entity iteration. Stale index entries are pruned in the oxidation round and by a low-frequency prune pass (`PRUNE_INTERVAL_TICKS`), mirroring `DripstoneGrowthListener`.
+
 ### Configuration (`config.yml`)
 
 All features are toggleable via `enabled` flags. Key config paths:
@@ -32,6 +34,9 @@ All features are toggleable via `enabled` flags. Key config paths:
 - `ominous-vault.blacklist-removal-limit` — same as above but for ominous vaults
 - `vault.reset-time` / `ominous-vault.reset-time` — `HH:mm` format for daily cycle boundaries
 - `silk-touch-collectibles.blocks` — list of `Material` enum names that silk touch can harvest
+- `copper-oxidation.random-ticks-per-pass` — `Block#randomTick()` calls per wet copper block per round (with `check-interval-ticks`, drives ~10 min/stage)
+- `copper-oxidation.golem-random-tick-interval-seconds` — wet copper golems average seconds per selection (selection oxidizes one stage, default 600)
+- `copper-oxidation.check-interval-ticks` / `worlds` / `rescan-interval-minutes` / `scan-chunks-per-tick` — processing interval, target worlds, index rescan tuning
 
 ### Data Model
 

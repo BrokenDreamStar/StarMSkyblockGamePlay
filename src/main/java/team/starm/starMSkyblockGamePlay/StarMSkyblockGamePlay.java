@@ -12,6 +12,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import team.starm.starMSkyblockGamePlay.listener.CopperOxidationListener;
 import team.starm.starMSkyblockGamePlay.listener.DripstoneGrowthListener;
 import team.starm.starMSkyblockGamePlay.listener.EndPortalGeneratorListener;
 import team.starm.starMSkyblockGamePlay.listener.HighLevelEnchantListener;
@@ -31,6 +32,7 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
 
     private LanguageManager languageManager;
     private DripstoneGrowthListener dripstoneGrowthListener;
+    private CopperOxidationListener copperOxidationListener;
 
     @Override
     public void onEnable() {
@@ -52,6 +54,9 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
         dripstoneGrowthListener = new DripstoneGrowthListener(this);
         getServer().getPluginManager().registerEvents(dripstoneGrowthListener, this);
         dripstoneGrowthListener.startGrowthTask();
+        copperOxidationListener = new CopperOxidationListener(this);
+        getServer().getPluginManager().registerEvents(copperOxidationListener, this);
+        copperOxidationListener.startTask();
     }
 
     @Override
@@ -296,6 +301,9 @@ public final class StarMSkyblockGamePlay extends JavaPlugin {
     public void onDisable() {
         if (dripstoneGrowthListener != null) {
             dripstoneGrowthListener.stopGrowthTask();
+        }
+        if (copperOxidationListener != null) {
+            copperOxidationListener.stopTask();
         }
     }
 }
