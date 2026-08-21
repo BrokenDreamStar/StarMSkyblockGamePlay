@@ -50,6 +50,8 @@ snowball-converter:
   lore:
     - "&d击中生物时有概率将其捕捉为刷怪蛋"
     - "&e请在菜单的帮助页面查看可捕捉生物列表"
+  # 未命中生物或命中无法捕捉的生物时，是否返还精灵球
+  refund-on-miss: true
   # 是否启用白名单模式（true=仅白名单内生物可转换，false=黑名单模式）
   use-whitelist: true
   # 白名单生物类型列表（use-whitelist: true 时生效，EntityType 枚举名）
@@ -188,3 +190,22 @@ dripstone-growth:
   scan-chunks-per-tick: 1
   # 生效的世界名称列表（留空=所有世界）
   worlds: []
+
+# 刷怪笼刷怪蛋强化功能（对同一个普通刷怪笼反复使用刷怪蛋，每个蛋都提升一点刷怪效率）
+# 只有与刷怪笼中已有生物匹配的刷怪蛋才会被消耗用于强化；其他刷怪蛋执行原版替换生物操作，
+# 并把该刷怪笼的强化重置为原版（已喂蛋数归零、效率还原 1 倍）
+# 强化进度存在刷怪笼方块 NBT 中：配合 silk-touch-collectibles 精准采集可将已强化的刷怪笼完整搬走（进度保留）
+spawner-upgrade:
+  # 是否启用该功能
+  enabled: true
+  # 达到最大效率所需的刷怪蛋总数（默认 30，达到后不再消耗刷怪蛋）
+  max-eggs: 30
+  # 喂满 max-eggs 个刷怪蛋时，刷怪 CD 缩短为原版的 1/max-multiplier（默认 5 = 缩短为 1/5）
+  max-multiplier: 5
+  # 统一的初始每次刷出数量（无论什么生物，初始都是这个数量）
+  base-spawn-count: 3
+  # 每放入多少个刷怪蛋，每次刷出的数量增加 1 只（默认 5，即每 5 个蛋 +1 只；0 表示不增加数量）
+  eggs-per-extra-mob: 5
+  # 刷怪笼附近同类生物上限的初始值（0 个蛋也生效；原版默认仅 6，怪物堆在笼旁会让整轮停止生成，
+  # 抬高后可显著减少“越刷越少 / 整轮不刷”的情况）
+  base-max-nearby-entities: 24

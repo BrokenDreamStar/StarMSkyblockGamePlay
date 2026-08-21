@@ -1,6 +1,7 @@
 package team.starm.starMSkyblockGamePlay.listener;
 
 import net.kyori.adventure.text.Component;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -78,47 +79,60 @@ public class SnowballConverterListener implements Listener {
         // Check snowball has the converter PDC flag
         if (!snowball.getPersistentDataContainer().has(flagKey, PersistentDataType.BOOLEAN)) return;
 
-        // Check hit entity is a living entity (not the shooter)
-        Entity hitEntity = event.getHitEntity();
-        if (hitEntity == null || !(hitEntity instanceof LivingEntity living)) return;
-
         ProjectileSource shooter = snowball.getShooter();
         if (!(shooter instanceof Player player)) return;
 
-        // Don't convert the shooter themselves (edge case)
-        if (hitEntity.equals(player)) return;
+        boolean refundOnMiss = plugin.getConfig().getBoolean("snowball-converter.refund-on-miss", true);
 
-        // Entity type checks
-        var entityType = living.getType();
-        if (!EntityTypeSpawnEggMapper.hasSpawnEgg(entityType)) {
-            player.sendActionBar(lang.getComponent("snowball-converter.no-egg", Map.of()));
+        // Check hit entity is a living entity
+        Entity hitEntity = event.getHitEntity();
+        if (hitEntity == null || !(hitEntity instanceof LivingEntity living)) {
+            // No creature was hit (block hit, non-living entity, etc.) — return the ball.
+            if (refundOnMiss) {
+                returnSnowball(snowball, player);
+                player.sendActionBar(lang.getComponent("snowball-converter.miss-returned", Map.of()));
+            }
             return;
         }
 
+        // Entity type checks
+        var entityType = living.getType();
+
         // Build translatable entity name component (auto-translates to player's client language)
         Component entityComp = Component.translatable("entity.minecraft." + entityType.getKey().getKey());
+
+        if (!EntityTypeSpawnEggMapper.hasSpawnEgg(entityType)) {
+            sendUncatchableResult(player, refundOnMiss, snowball, entityComp,
+                    "snowball-converter.no-egg-returned", "snowball-converter.no-egg");
+            return;
+        }
 
         // Whitelist / Blacklist check
         boolean useWhitelist = plugin.getConfig().getBoolean("snowball-converter.use-whitelist", false);
         if (useWhitelist) {
             List<String> whitelist = plugin.getConfig().getStringList("snowball-converter.whitelist");
             if (!whitelist.contains(entityType.name())) {
-                player.sendActionBar(lang.getComponent("snowball-converter.cannot-catch",
-                        Map.of("entity", entityComp)));
+                sendUncatchableResult(player, refundOnMiss, snowball, entityComp,
+                        "snowball-converter.cannot-catch-returned", "snowball-converter.cannot-catch");
                 return;
             }
         } else {
             List<String> blacklist = plugin.getConfig().getStringList("snowball-converter.blacklist");
             if (blacklist.contains(entityType.name())) {
-                player.sendActionBar(lang.getComponent("snowball-converter.cannot-catch",
-                        Map.of("entity", entityComp)));
+                sendUncatchableResult(player, refundOnMiss, snowball, entityComp,
+                        "snowball-converter.cannot-catch-returned", "snowball-converter.cannot-catch");
                 return;
             }
         }
 
         // Calculate chance
         int chance = resolveChance(entityType, snowball);
-        if (chance <= 0) return;
+        if (chance <= 0) {
+            // A zero (or negative) chance means this creature can never be captured.
+            sendUncatchableResult(player, refundOnMiss, snowball, entityComp,
+                    "snowball-converter.cannot-catch-returned", "snowball-converter.cannot-catch");
+            return;
+        }
 
         // Roll
         if (ThreadLocalRandom.current().nextInt(100) >= chance) {
@@ -130,7 +144,8 @@ public class SnowballConverterListener implements Listener {
         // Success: create spawn egg
         Material eggMaterial = EntityTypeSpawnEggMapper.getSpawnEgg(entityType);
         if (eggMaterial == null) {
-            player.sendActionBar(lang.getComponent("snowball-converter.no-egg", Map.of()));
+            sendUncatchableResult(player, refundOnMiss, snowball, entityComp,
+                    "snowball-converter.no-egg-returned", "snowball-converter.no-egg");
             return;
         }
 
@@ -145,6 +160,78 @@ public class SnowballConverterListener implements Listener {
 
         player.sendActionBar(lang.getComponent("snowball-converter.converted",
                     Map.of("entity", entityComp)));
+    }
+
+    /**
+     * Sends the appropriate action-bar message for an uncatchable target and,
+     * when enabled, returns the enhanced snowball to the thrower.
+     */
+    private void sendUncatchableResult(Player player, boolean refundOnMiss, Snowball snowball,
+                                       Component entityComp, String returnedMessagePath, String baseMessagePath) {
+        if (refundOnMiss) {
+            returnSnowball(snowball, player);
+            player.sendActionBar(lang.getComponent(returnedMessagePath, Map.of("entity", entityComp)));
+        } else {
+            player.sendActionBar(lang.getComponent(baseMessagePath, Map.of("entity", entityComp)));
+        }
+    }
+
+    /**
+     * Gives a new enhanced snowball back to the thrower. If the inventory is full,
+     * the ball drops at the player's feet (or at the projectile if the player went offline).
+     */
+    private void returnSnowball(Snowball snowball, Player player) {
+        ItemStack ball = createConverterSnowball(snowball);
+
+        if (player.isOnline()) {
+            Map<Integer, ItemStack> leftover = player.getInventory().addItem(ball);
+            if (!leftover.isEmpty()) {
+                Location playerLoc = player.getLocation();
+                if (playerLoc.getWorld() != null) {
+                    for (ItemStack item : leftover.values()) {
+                        playerLoc.getWorld().dropItemNaturally(playerLoc, item);
+                    }
+                }
+            }
+            return;
+        }
+
+        Location snowballLoc = snowball.getLocation();
+        if (snowballLoc.getWorld() != null) {
+            snowballLoc.getWorld().dropItemNaturally(snowballLoc, ball);
+        }
+    }
+
+    /**
+     * Rebuilds the enhanced snowball item, preserving the custom capture chance PDC
+     * and re-applying the configured display name / lore.
+     */
+    private ItemStack createConverterSnowball(Snowball snowball) {
+        ItemStack item = new ItemStack(Material.SNOWBALL);
+        item.editMeta(meta -> {
+            meta.setEnchantmentGlintOverride(true);
+
+            var itemPDC = meta.getPersistentDataContainer();
+            itemPDC.set(flagKey, PersistentDataType.BOOLEAN, true);
+            Integer customChance = snowball.getPersistentDataContainer()
+                    .get(chanceKey, PersistentDataType.INTEGER);
+            if (customChance != null && customChance > 0) {
+                itemPDC.set(chanceKey, PersistentDataType.INTEGER, customChance);
+            }
+
+            String itemName = plugin.getConfig().getString("snowball-converter.item-name");
+            if (itemName != null && !itemName.isEmpty()) {
+                meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', itemName));
+            }
+
+            List<String> lore = plugin.getConfig().getStringList("snowball-converter.lore");
+            if (!lore.isEmpty()) {
+                meta.setLore(lore.stream()
+                        .map(line -> ChatColor.translateAlternateColorCodes('&', line))
+                        .toList());
+            }
+        });
+        return item;
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

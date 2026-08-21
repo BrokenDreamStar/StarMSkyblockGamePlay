@@ -34,16 +34,26 @@ public class LanguageManager {
         messagesConfig = YamlConfiguration.loadConfiguration(messageFile);
 
         // 合并资源中的默认值，确保新增的键在升级后自动补充
+        // 注意:不能用 contains() 判断缺失 —— 它会回退到默认值,导致永远判定为无缺失。
+        // getKeys(true) 在 copyDefaults 启用前只返回文件自身存在的键，与默认键集对比才能找出缺失项。
+        // 仅当确实缺失键时才写回磁盘，全新安装的文件（含注释）不被重写。
+        boolean missing;
         try (InputStreamReader defaultsReader = new InputStreamReader(
                 plugin.getResource("messages.yml"), StandardCharsets.UTF_8)) {
             FileConfiguration defaults = YamlConfiguration.loadConfiguration(defaultsReader);
             messagesConfig.setDefaults(defaults);
+            missing = !messagesConfig.getKeys(true).containsAll(defaults.getKeys(true));
+
             messagesConfig.options().copyDefaults(true);
         } catch (IOException e) {
             plugin.getLogger().warning("无法读取默认 messages.yml: " + e.getMessage());
+            missing = false;
         }
 
-        saveMessages();
+        if (missing) {
+            plugin.getLogger().info("检测到 messages.yml 缺少消息项，已自动补全。");
+            saveMessages();
+        }
     }
 
     private void saveMessages() {
@@ -136,19 +146,31 @@ public class LanguageManager {
     }
 
     /**
-     * 从磁盘重新加载 messages.yml。
+     * 从磁盘重新加载 messages.yml，并在默认消息文件新增了键时补全缺失项并写回磁盘。
+     *
+     * @return 是否执行了补全
      */
-    public void reloadMessages() {
+    public boolean reloadMessages() {
         messagesConfig = YamlConfiguration.loadConfiguration(messageFile);
 
+        boolean missing;
         try (InputStreamReader defaultsReader = new InputStreamReader(
                 plugin.getResource("messages.yml"), StandardCharsets.UTF_8)) {
             FileConfiguration defaults = YamlConfiguration.loadConfiguration(defaultsReader);
             messagesConfig.setDefaults(defaults);
+            missing = !messagesConfig.getKeys(true).containsAll(defaults.getKeys(true));
+
             messagesConfig.options().copyDefaults(true);
         } catch (IOException e) {
             plugin.getLogger().warning("无法读取默认 messages.yml: " + e.getMessage());
+            missing = false;
         }
+
+        if (missing) {
+            plugin.getLogger().info("检测到 messages.yml 缺少消息项，已自动补全。");
+            saveMessages();
+        }
+        return missing;
     }
 
     /**

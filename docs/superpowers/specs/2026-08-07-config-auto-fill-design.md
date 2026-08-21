@@ -30,19 +30,22 @@
 ## 核心机制
 
 ```java
-private void fillMissingConfigKeys() {
-    FileConfiguration defaults = getConfig().getDefaults();
-    if (defaults == null) return;
-    boolean missing = false;
-    for (String path : defaults.getKeys(true)) {
-        if (!getConfig().contains(path)) { missing = true; break; }
+private boolean fillMissingConfigKeys() {
+    Configuration defaults = getConfig().getDefaults();
+    if (defaults == null) return false;
+    // 注意:不能用 contains() 判断缺失 —— 它会回退到默认值,导致永远返回 true。
+    // getKeys(true) 只返回配置文件自身存在的键,与默认键集对比才能找出缺失项。
+    if (getConfig().getKeys(true).containsAll(defaults.getKeys(true))) {
+        return false;
     }
-    if (!missing) return;
     getConfig().options().copyDefaults(true);
     saveConfig();
     getLogger().info("检测到 config.yml 缺少配置项，已自动补全。");
+    return true;
 }
 ```
+
+> 实现注记:初版用 `contains()` 扫描,运行验证发现 Bukkit 的 `contains()` 会回退到挂载的默认值(见 `MemoryConfigurationSection#get` 的 `getDefault` 回退),导致缺失永远检测不到。改为 `getKeys(true)` 键集对比后验证通过。这正是"运行验证捕获设计盲区"的实例。
 
 语义(用户确认"仅补缺失的键"):
 

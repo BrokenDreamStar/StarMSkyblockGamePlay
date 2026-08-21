@@ -1,6 +1,6 @@
 # StarMSkyblockGamePlay
 
-一个基于 [Paper](https://papermc.io/) 的空岛服务器玩法扩展插件，集成了试炼刷怪笼冷却缩减、宝库黑名单移除、精准采集完整方块、雪球捕捉生物、末地传送门生成器、幽匿尖啸体强化、铁砧超等级附魔书、滴水石锥加速生长等功能。
+一个基于 [Paper](https://papermc.io/) 的空岛服务器玩法扩展插件，集成了试炼刷怪笼冷却缩减、宝库黑名单移除、精准采集完整方块、雪球捕捉生物、末地传送门生成器、幽匿尖啸体强化、铁砧超等级附魔书、滴水石锥加速生长、刷怪笼刷怪蛋升级等功能。
 
 - **作者**: [BrokenDream_Star](https://github.com/BrokenDreamStar)、DeepSeek
 - **网站**: https://starm.team/
@@ -20,6 +20,7 @@
 - ❄️ **雪球转换（精灵球）**
   - 右键投掷精灵球击中生物时，有概率将其捕捉为对应刷怪蛋
   - 支持白名单 / 黑名单模式，可按生物类型单独设置转换概率
+  - 未命中生物或命中无法捕捉的生物时自动返还精灵球（可配置）
 - ⚡ **闪电转化**
   - 闪电命中守卫者时将其转化为远古守卫者
 - 🌀 **末地传送门生成器**
@@ -32,6 +33,13 @@
 - 💧 **滴水石锥加速生长**
   - 对符合条件的钟乳石结构定期触发随机刻，生长速度提升约 100 倍（约 44 秒/格）
   - 顺带加速炼药锅填充与泥巴 → 黏土转化，保持原版生长规则不变
+- 🥚 **刷怪笼刷怪蛋强化**
+  - 对同一个普通刷怪笼反复使用**与刷怪笼已有生物匹配的刷怪蛋**，每个蛋提升一点刷怪效率
+  - 效率提升 = **缩短刷怪 CD**（喂满 30 个 → CD 缩短为原版的 1/5）+ **增加每次刷出数量**（无论什么生物初始都统一为 3 只，之后每 5 个蛋 +1 只）
+  - 空手右键刷怪笼、或用匹配刷怪蛋喂养时，都会在**动作栏**显示已放入的刷怪蛋数量、每次数量与当前效率
+  - 对已强化的刷怪笼使用不匹配的刷怪蛋时，先警告会清空强化（二次右键确认后才替换），避免误操作毁掉强化
+  - 替换生物时强化重置为原版（避免免费继承效率）
+  - 已喂蛋数随方块 NBT 持久化（服务器重启、精准采集搬运均保留）
 
 ## 环境要求
 
@@ -68,10 +76,12 @@
 - `silk-touch-collectibles.blocks` — 精准采集可完整采集的方块列表
 - `snowball-converter.global-chance` / `mob-chances` — 雪球转换全局概率与按生物概率
 - `snowball-converter.use-whitelist` / `whitelist` / `blacklist` — 雪球转换生物过滤
+- `snowball-converter.refund-on-miss` — 未命中或命中无法捕捉生物时返还精灵球
 - `end-portal-generator.item-name` / `lore` — 传送门生成器物品显示
 - `anvil-high-level-enchant.max-repair-cost` — 铁砧"过于昂贵"经验上限（原版为 40）
 - `dripstone-growth.random-ticks-per-pass` / `check-interval-ticks` — 滴水石锥生长速度调节
 - `dripstone-growth.rescan-interval-minutes` / `scan-chunks-per-tick` — 结构索引纠偏扫描
 - `dripstone-growth.worlds` — 滴水石锥加速生效的世界列表（留空=所有世界）
+- `spawner-upgrade.max-eggs` / `max-multiplier` / `base-spawn-count` / `eggs-per-extra-mob` — 刷怪笼刷怪蛋强化达到最大效率所需蛋数、CD 缩短倍率、统一的初始每次数量与每加 1 只所需蛋数；只有与已有生物匹配的刷怪蛋能强化，否则放行原版替换生物并重置强化
 
 玩家可见的提示消息可在 `messages.yml` 中自定义。
