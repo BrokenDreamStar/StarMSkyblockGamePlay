@@ -5,23 +5,36 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.0.4] - 2026-08-24
+
+### 修复
+
+- **生存模式放置刷怪笼丢失配置（空刷怪笼）**：原版的安全门控（`minecraft.nbt.place` 权限）会在
+  生存模式下拒绝把物品携带的方块实体 NBT 应用到 `SPAWNER` / `TRIAL_SPAWNER`（二者都在
+  `OP_ONLY_CUSTOM_DATA` 集合中，仅 OP 或创造模式玩家可设置 NBT），导致精准采集获得的
+  刷怪笼在生存模式放置后丢失全部配置（试炼刷怪笼为空笼子、普通刷怪笼丢失生物与强化数据）。
+  现在插件在放置时手动把物品中的方块实体数据应用到方块，绕过该门控，生存模式与创造模式行为一致
+- **精准采集搬运不祥宝库后变为普通宝库**：方块状态（block data）与方块实体数据（block entity NBT）
+  是两回事 —— `BlockStateMeta#setBlockState` 只保存方块实体 NBT，不保存 `block_state`，因此
+  物品快照的方块状态始终是默认值（`VAULT` 为 `ominous=false`、`facing=north`）。放置时用
+  `BlockState#update()` 回写方块实体数据会连同整份快照一起重新放置方块，把刚放下的不祥宝库
+  覆盖回普通宝库（朝向同时被重置为北）。现在回写方块实体数据前先把**已放置方块的方块状态**
+  复制到快照上，并且先应用方块实体数据、再应用不祥标记，不祥宝库与朝向都能正确保留
+
 ## [1.0.3] - 2026-08-21
 
 ### 新增
 
 - **水中快速氧化**：当铜方块及其变种、铜傀儡在水中时加速其氧化
-  - 铜方块：未上蜡、未满氧化的铜家族方块（铜块、切制铜、台阶/楼梯、活板门、门、栅栏、
-    锁链、灯、栏杆、铜储物箱、避雷针等）在水中（自身水浸或轴向邻接水）时，每隔
-    `check-interval-ticks`（默认 600 tick = 30 秒）对其调用**真实 `randomTick()`** 一次
-    （`random-ticks-per-pass`，默认 1），由原版预氧化/晋级逻辑驱动；孤立湿铜平均约
-    10 分钟氧化一阶段
-  - 铜傀儡：未被上蜡的铜傀儡在水中时，平均每 `golem-random-tick-interval-seconds`
-    （默认 900 秒 = 平均约 15 分钟）被随机刻选中一次，选中即氧化一阶段（实体无 randomTick，按抽取模型）
+  - **与原版同一“随机刻”语义**：未上蜡、未满氧化的铜家族方块（铜块、切制铜、台阶/楼梯、
+    活板门、门、栅栏、锁链、灯、栏杆、铜储物箱、避雷针等）在水中（自身水浸或轴向邻接水）时，
+    按原版自然随机刻的频率（平均每 68.27 秒一次）做“随机刻”抽取，每接收一个随机刻即以
+    `advance-chance-per-tick`（默认 14.2%）的概率**直接氧化到下一阶段**；铜傀儡用同一套
+    抽取（同频率、同一概率）。平均约 8 分钟氧化一阶段
   - 上蜡的方块/铜傀儡不会氧化；已完全氧化的不再有下一阶段
-  - 通过放置/水流/破块事件增量维护“湿铜”索引，启动全量补建 + 周期性纠偏，避免持续全量扫描
-  - 新增配置段 `copper-oxidation`（`enabled` / `worlds` / `check-interval-ticks` /
-    `random-ticks-per-pass` / `golem-random-tick-interval-seconds` /
-    `rescan-interval-minutes` / `scan-chunks-per-tick`）
+  - 铜傀儡由加入/离开世界事件维护索引（启动补全一次）；湿铜无索引、无定时轮，完全由随机刻
+    事件驱动，无全量扫描
+  - `copper-oxidation` 配置段：`enabled` / `worlds` / `advance-chance-per-tick`
 
 ### 变更
 
