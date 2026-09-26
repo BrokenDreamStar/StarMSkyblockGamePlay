@@ -1,5 +1,7 @@
 package team.starm.starMSkyblockGamePlay.listener;
 
+import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
+import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import io.papermc.paper.world.WeatheringCopperState;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
@@ -16,8 +18,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
-import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import team.starm.starMSkyblockGamePlay.StarMSkyblockGamePlay;
 
@@ -33,28 +33,49 @@ import java.util.Random;
 import java.util.Set;
 
 /**
- * 水中快速氧化：当铜方块及其变种、铜傀儡在水中时，加速其氧化。
+ * 水中快速氧化：当铜方块及其变种、铜傀儡在水中时，按“原版随机刻语义”加速其氧化。
  *
  * 背景：本版本（Copper Age 起）原版铜方块的氧化依赖随机刻，水/雨不再加速氧化；
  * 铜傀儡则按游戏刻计时（每阶段约 7~8 小时），在水中也毫无加速。
  *
- * 实现：
- * - 铜方块/变种：按“随机刻语义”加速 —— 每隔 check-interval-ticks 对每个“湿”的
- *   可氧化铜方块调用真实 end-block {@code randomTick()}（次数为 random-ticks-per-pass），
- *   由原版预氧化/晋级逻辑驱动（保留原版分组减速等规则），只是把随机刻频率抬上去。
- *   默认 check-interval-ticks=500（25 秒）、random-ticks-per-pass=1 → 孤立湿铜约
- *   平均 8.3 分钟/阶段。
- * - 铜傀儡：实体没有 randomTick()，保持“随机刻抽取”模型 —— 每轮按概率抽取，
- *   被选中即立刻氧化一阶段（golem-random-tick-interval-seconds，默认 600 秒 = 10 分钟）。
+ * 实现（与原版“每随机刻有概率进入预氧化”同语义，仅把概率换为可配置的直接晋级概率）：
+ * - 该 Paper 版本不提供随机刻事件 API，故按原版自然随机刻的**统计频率**模拟“随机刻选中”：
+ *   每方块平均每 68.27 秒（1365.3 游戏刻）收到一次自然随机刻 → 本插件每 tick 以 1/1365.3
+ *   的概率对每个湿铜方块掷“被随机刻选中”骰。
+ * - 被“随机刻”选中后：再以概率 advance-chance-per-tick（默认 14.2%）**直接氧化到下一阶段**
+ *   （跳过原版预氧化积累，材质沿 NEXT_OXIDATION 链 setType 推进）。
+ * - 铜傀儡（实体没有随机刻）：同一套“模拟随机刻”抽取 —— 每 tick 以 1/1365.3 概率被选中，
+ *   再以同样的 advance-chance-per-tick 概率直接氧化一阶段
+ *   （{@code CopperGolem#setWeatheringState} 推进，UNAFFECTED → EXPOSED → WEATHERED → OXIDIZED）。
+ * - 默认 14.2% ≈ 平均约 7 次随机刻/阶段；按每方块平均每 68.27 秒一次随机刻估算，
+ *   方块与傀儡均约 **8 分钟氧化一阶段**。
  * - 上蜡的方块/铜傀儡不会氧化；已完全氧化的不再有下一阶段。
  *
- * 性能说明：通过放置/破块/水流事件增量化维护“湿铜方块”索引，铜傀儡索引由加入/离开世界事件
- * 维护（启动时各补全一次），失效项在氧化轮与低频剔除（PRUNE_INTERVAL_TICKS）中清理，避免
- * 每轮全实体遍历与持续全量扫描（与滴水石锥加速相同的架构）。
+ * 性能说明：湿铜由“随机刻选中”事件驱动（每 tick 每块仅一次微概率判定，选中后才做湿判定）；
+ * 索引通过放置/破块/水流事件增量维护，启动全量补建 + 周期性纠偏，避免持续全量扫描；
+ * 铜傀儡索引由加入/离开世界事件维护（启动补全一次），无全实体遍历。
  */
 public class CopperOxidationListener implements Listener {
 
     private static final String CONFIG_PATH = "copper-oxidation";
+
+    /** 原版每方块平均收到一次自然随机刻间隔的估计（wiki：平均每 68.27 秒一次 = 1365.3 游戏刻）。 */
+    private static final double NATURAL_RANDOM_TICK_INTERVAL_TICKS = 1365.3;
+
+    /** 每游戏刻被“随机刻”选中的概率 = 1/1365.3（≈0.0732%）。 */
+    private static final double RANDOM_TICK_CHANCE_PER_TICK = 1.0 / NATURAL_RANDOM_TICK_INTERVAL_TICKS;
+
+    /** advance-chance-per-tick 默认值（%）：1/0.142 ≈ 7 次随机刻 × 68.27 秒 ≈ 8 分钟/阶段。 */
+    private static final double DEFAULT_ADVANCE_CHANCE = 14.2;
+
+    /** 全量纠偏扫描间隔（固定 10 分钟；0 语义由无索引的架构不复存在，此处固定启用）。 */
+    private static final long RESCAN_INTERVAL_TICKS = 10 * 60L * 20L;
+
+    /** 索引快速剔除非合格方块：约 10 秒一次（200 tick）。 */
+    private static final long PRUNE_INTERVAL_TICKS = 200;
+
+    /** 全量扫描每 tick 处理的区块数（固定 1）。 */
+    private static final int SCAN_CHUNKS_PER_TICK = 1;
 
     /** 6 个轴向相邻方块，用于判定“邻接水”。 */
     private static final BlockFace[] FACES = {
@@ -119,16 +140,10 @@ public class CopperOxidationListener implements Listener {
     /** 距上次全量扫描经过的游戏刻数。 */
     private long ticksSinceLastScan = 0;
 
-    /** 触发轮计数器。 */
-    private long tickCounter = 0;
-
-    /** 高频校验计数器。 */
+    /** 索引剔除计数器。 */
     private long pruneCounter = 0;
 
-    /** 索引快速剔除非合格方块：约 10 秒一次（200 tick）；失效项兜底剔除也发生在每轮氧化处理中。 */
-    private static final long PRUNE_INTERVAL_TICKS = 200;
-
-    /** 每轮随机刻抽取的随机数源。 */
+    /** “随机刻”抽取的随机数源。 */
     private final Random random = new Random();
 
     private BukkitRunnable task;
@@ -181,7 +196,7 @@ public class CopperOxidationListener implements Listener {
         refreshAround(block);
     }
 
-    /** 铜傀儡加入世界（生成/区块加载回场）→ 登记索引，避免每轮全实体遍历。 */
+    /** 铜傀儡加入世界（生成/区块加载回场）→ 登记索引，避免每 tick 全实体遍历。 */
     @EventHandler(ignoreCancelled = true)
     public void onEntityAdd(EntityAddToWorldEvent event) {
         if (!isEnabled() || !isTargetWorld(event.getEntity().getWorld())) return;
@@ -198,16 +213,12 @@ public class CopperOxidationListener implements Listener {
         }
     }
 
-    /** 每游戏刻运行：处理扫描队列，并按间隔触发氧化轮。 */
+    /** 每游戏刻运行：处理扫描队列，并对湿铜方块与铜傀儡做“随机刻”抽取。 */
     private void tick() {
         if (!isEnabled()) return;
 
-        int scanChunksPerTick = Math.max(1, plugin.getConfig().getInt(CONFIG_PATH + ".scan-chunks-per-tick", 1));
-        int rescanIntervalMinutes = plugin.getConfig().getInt(CONFIG_PATH + ".rescan-interval-minutes", 10);
-        int checkIntervalTicks = Math.max(20, plugin.getConfig().getInt(CONFIG_PATH + ".check-interval-ticks", 500));
-
         // 处理全量扫描队列（启动补建/周期纠偏），每 tick 限量摊开
-        for (int i = 0; i < scanChunksPerTick && !scanQueue.isEmpty(); i++) {
+        for (int i = 0; i < SCAN_CHUNKS_PER_TICK && !scanQueue.isEmpty(); i++) {
             scanChunk(scanQueue.poll());
         }
 
@@ -216,6 +227,50 @@ public class CopperOxidationListener implements Listener {
             initialScanQueued = true;
             queueFullScan();
         }
+
+        // 周期性纠偏：重新全量扫描，补全未被放置/水流事件捕获的水中铜方块
+        if (++ticksSinceLastScan >= RESCAN_INTERVAL_TICKS) {
+            ticksSinceLastScan = 0;
+            queueFullScan();
+        }
+
+        // 索引快速剔除：让已变干/被磨掉/上蜡/满氧化的方块约 10 秒内停止参与抽取
+        if (++pruneCounter % PRUNE_INTERVAL_TICKS == 0) {
+            pruneIndex();
+        }
+
+        rollCopperTicks();
+        rollGolemTicks();
+    }
+
+    /** 湿铜方块按原版自然随机刻频率抽取：被“随机刻”选中后再掷晋级骰（默认 ≈ 8 分钟/阶段）。 */
+    private void rollCopperTicks() {
+        double advanceChance = advanceChance();
+        if (advanceChance <= 0) return;
+
+        for (Iterator<Block> it = indexedCopper.iterator(); it.hasNext(); ) {
+            Block block = it.next();
+            // 每 tick 仅一次微概率判定：是否被“自然随机刻”选中（平均每 68.27 秒一次）
+            if (random.nextDouble() >= RANDOM_TICK_CHANCE_PER_TICK) continue;
+            // 选中后才做完整校验：失效项（变干/上蜡/满氧化等）在此移除
+            if (!isTargetWorld(block.getWorld()) || !isWet(block) || !isOxidizable(block.getType())) {
+                it.remove();
+                continue;
+            }
+            // 被选中即掷“晋级”骰：命中直接氧化到下一阶段（沿 NEXT_OXIDATION 链）
+            if (random.nextDouble() < advanceChance) {
+                Material next = NEXT_OXIDATION.get(block.getType());
+                if (next != null) {
+                    block.setType(next, false);
+                }
+            }
+        }
+    }
+
+    /** 铜傀儡用同一套“模拟随机刻”抽取：与方块自然随机刻同频率、同一晋级概率。 */
+    private void rollGolemTicks() {
+        double advanceChance = advanceChance();
+        if (advanceChance <= 0) return;
 
         // 启动补全：把插件加载前已存在的铜傀儡登记进索引（此后由 add/remove 事件增量维护）
         if (!initialGolemScanQueued) {
@@ -229,24 +284,27 @@ public class CopperOxidationListener implements Listener {
             }
         }
 
-        // 周期性纠偏：重新全量扫描，补全未被放置/水流事件捕获的水中铜方块
-        if (rescanIntervalMinutes > 0 && ++ticksSinceLastScan >= rescanIntervalMinutes * 60L * 20L) {
-            ticksSinceLastScan = 0;
-            queueFullScan();
+        // 每 tick 概率 = 被“模拟随机刻”选中（1/1365.3）× 晋级（advance-chance-per-tick）
+        double chancePerTick = advanceChance * RANDOM_TICK_CHANCE_PER_TICK;
+        for (Iterator<CopperGolem> it = indexedGolems.iterator(); it.hasNext(); ) {
+            CopperGolem golem = it.next();
+            if (!golem.isValid() || !isTargetWorld(golem.getWorld())) {
+                it.remove();
+                continue;
+            }
+            if (isWaxed(golem) || golem.getWeatheringState() == WeatheringCopperState.OXIDIZED) continue;
+            if (golem.isInWater() && random.nextDouble() < chancePerTick) {
+                advanceGolem(golem);
+            }
         }
-
-        // 高频校验剔除：让已变干/被磨掉/上蜡/满氧化的方块尽快（约 10 秒内）停止加速，
-        // 不必等下一个氧化轮（check-interval-ticks，默认 25 秒）
-        if (++pruneCounter % PRUNE_INTERVAL_TICKS == 0) {
-            pruneIndex();
-        }
-
-        // 每 checkIntervalTicks 触发一轮氧化处理
-        if (++tickCounter % checkIntervalTicks != 0) return;
-        processRound(checkIntervalTicks);
     }
 
-    /** 高频剔除不再合格的索引项（非目标世界 / 已变干 / 已不可氧化）。 */
+    /** 读取配置：每次“随机刻”直接氧化到下一阶段的概率（%，0-100 → 0~1）。 */
+    private double advanceChance() {
+        return Math.clamp(plugin.getConfig().getDouble(CONFIG_PATH + ".advance-chance-per-tick", DEFAULT_ADVANCE_CHANCE), 0, 100) / 100.0;
+    }
+
+    /** 索引快速剔除不再合格的索引项（非目标世界 / 已变干 / 已不可氧化）。 */
     private void pruneIndex() {
         indexedCopper.removeIf(block ->
                 !isTargetWorld(block.getWorld())
@@ -280,71 +338,6 @@ public class CopperOxidationListener implements Listener {
         }
     }
 
-    /** 触发一轮：对水中可氧化铜方块调用真实 randomTick() 加速氧化，并对水中铜傀儡做随机刻抽取。 */
-    private void processRound(int intervalTicks) {
-        int randomTicksPerPass = Math.clamp(plugin.getConfig().getInt(CONFIG_PATH + ".random-ticks-per-pass", 1), 1, 1000);
-
-        // 用迭代器在遍历中剔除失效项，避免每轮复制整个索引
-        for (Iterator<Block> it = indexedCopper.iterator(); it.hasNext(); ) {
-            Block block = it.next();
-            if (!isTargetWorld(block.getWorld())) {
-                it.remove();
-                continue;
-            }
-            if (!isWet(block)) {
-                it.remove();
-                continue;
-            }
-            if (!isOxidizable(block.getType())) {
-                it.remove();
-                continue;
-            }
-            // 调用真实 randomTick()，由原版预氧化/晋级逻辑推进氧化（上蜡/满氧化由原版与索引双重排除）
-            for (int i = 0; i < randomTicksPerPass; i++) {
-                block.randomTick();
-            }
-        }
-
-        processGolems(intervalTicks);
-    }
-
-    /** 对水中铜傀儡做随机刻抽取：被选中且未上蜡、未满氧化 → 立即氧化一阶段。 */
-    private void processGolems(int intervalTicks) {
-        int golemIntervalSeconds = Math.max(1, plugin.getConfig().getInt(CONFIG_PATH + ".golem-random-tick-interval-seconds", 600));
-        double chance = selectionChance(intervalTicks, golemIntervalSeconds);
-
-        for (Iterator<CopperGolem> it = indexedGolems.iterator(); it.hasNext(); ) {
-            CopperGolem golem = it.next();
-            if (!golem.isValid() || !isTargetWorld(golem.getWorld())) {
-                it.remove();
-                continue;
-            }
-            if (isWaxed(golem) || golem.getWeatheringState() == WeatheringCopperState.OXIDIZED) continue;
-            if (golem.isInWater() && isSelected(chance)) {
-                // 被随机刻选中 → 立即氧化到下一阶段
-                advanceGolem(golem);
-            }
-        }
-    }
-
-    /** 本次抽取是否被“随机刻”选中。 */
-    private boolean isSelected(double chance) {
-        return chance >= 1.0 || random.nextDouble() < chance;
-    }
-
-    /** 按“平均选中间隔（秒）”把本轮时长换算为被选中概率（0~1）。 */
-    private double selectionChance(int intervalTicks, int intervalSeconds) {
-        return Math.min(1.0, (intervalTicks / 20.0) / intervalSeconds);
-    }
-
-    /** 给铜傀儡推进一阶段。 */
-    private void advanceGolem(CopperGolem golem) {
-        WeatheringCopperState next = nextState(golem.getWeatheringState());
-        if (next != null) {
-            golem.setWeatheringState(next);
-        }
-    }
-
     /**
      * 刷新索引：把中心方块及其 6 个邻接方块中“可氧化且湿”的铜方块加入索引，其余移出。
      */
@@ -360,6 +353,14 @@ public class CopperOxidationListener implements Listener {
             indexedCopper.add(block);
         } else {
             indexedCopper.remove(block);
+        }
+    }
+
+    /** 给铜傀儡推进一阶段。 */
+    private void advanceGolem(CopperGolem golem) {
+        WeatheringCopperState next = nextState(golem.getWeatheringState());
+        if (next != null) {
+            golem.setWeatheringState(next);
         }
     }
 

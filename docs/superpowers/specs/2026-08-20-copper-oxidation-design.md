@@ -15,7 +15,7 @@
   铜储物箱、避雷针、铜傀儡雕像等）处于“湿”状态时，加速其氧化。
 - 未被上蜡的铜傀儡在水中时，同样加速氧化。
 - **上蜡的方块/铜傀儡不加速**；**已完全氧化**的不再推进。
-- 速度可配：铜方块/变种默认**平均约 10 分钟氧化一阶段**，铜傀儡默认**平均约 15 分钟**。
+- 速度可配：铜方块/变种与铜傀儡共用同一套“随机刻”概率语义，默认**平均约 8 分钟氧化一阶段**。
 
 ## 方案设计
 
@@ -31,51 +31,56 @@
 （`COPPER_X` → `EXPOSED_COPPER_X` → `WEATHERED_COPPER_X` → `OXIDIZED_COPPER_X`，含
 `WAXED_` 前缀的上蜡变体）。
 
-- **铜方块：调用真实 `Block#randomTick()`**（如同滴水石锥对尖端调用 randomTick），
-  由原版“预氧化 + 邻接分组”逻辑驱动晋级，保留原版规则（分组减速、只推进 1 阶段等）。
-  在类加载时按 **显式氧化链**（每铜家族 4 阶段材质名写死）构建静态判定映射
-  `Map<Material, Material> NEXT_OXIDATION`，仅用于 `isOxidizable()` 过滤：
-  上蜡材质、`OXIDIZED_` 终态材质不在映射中，天然跳过，不会把湿铜加速套用到它们头上。
-  - 用显式链而非“前缀拼接”的原因：普通铜块命名有特例（`EXPOSED_COPPER_BLOCK` 实际叫
-    `EXPOSED_COPPER`，去掉了 `_BLOCK` 后缀），而切制铜 / 避雷针等又是前缀拼接，字符串解析不可靠。
-- **铜傀儡（实体无 randomTick()）**：用
-  `CopperGolem#getWeatheringState()/setWeatheringState(WeatheringCopperState)` 按
-  `UNAFFECTED → EXPOSED → WEATHERED → OXIDIZED` 推进；上蜡判定
-  `getOxidizing() instanceof CopperGolem.Oxidizing.Waxed`（或与 `Oxidizing.waxed()` 恒等比较）。
+- **与原版同一“随机刻”语义**——该 Paper 版本不提供随机刻事件 API，因此按原版自然随机刻的
+  **统计频率**模拟“随机刻选中”：每方块平均每 68.27 秒（1365.3 tick）收到一次自然随机刻，
+  故每 tick 以 1/1365.3 的概率对每个湿铜方块掷“被随机刻选中”骰；被选中后再以配置概率
+  `advance-chance-per-tick` **直接氧化到下一阶段**（跳过原版 64/1125 的“预氧化”积累模型，
+  概率可配置、行为可预期）。这等价于把原版“每随机刻有 64/1125 概率进入预氧化”替换为
+  “每接收到一个随机刻有 X 概率直接晋级”。
+  - 方块晋级：材质沿 `NEXT_OXIDATION` 链 `setType` 推进。在类加载时按 **显式氧化链**
+    （每铜家族 4 阶段材质名写死）构建静态晋级映射 `Map<Material, Material> NEXT_OXIDATION`，
+    同时用于 `isOxidizable()` 过滤与晋级目标：上蜡材质、`OXIDIZED_` 终态材质不在映射中，
+    天然跳过，不会把湿铜加速套用到它们头上。
+    - 用显式链而非“前缀拼接”的原因：普通铜块命名有特例（`EXPOSED_COPPER_BLOCK` 实际叫
+      `EXPOSED_COPPER`，去掉了 `_BLOCK` 后缀），而切制铜 / 避雷针等又是前缀拼接，字符串解析不可靠。
+  - 铜傀儡（实体没有随机刻）：与方块共用**同一套“模拟随机刻”抽取** —— 每 tick 以 1/1365.3
+    概率被“模拟随机刻”选中，被选中后再以同样的 `advance-chance-per-tick` 概率晋级。
+    晋级：`CopperGolem#getWeatheringState()/setWeatheringState(WeatheringCopperState)`
+    按 `UNAFFECTED → EXPOSED → WEATHERED → OXIDIZED` 推进；上蜡判定
+    `getOxidizing() instanceof CopperGolem.Oxidizing.Waxed`（或与 `Oxidizing.waxed()` 恒等比较）。
 
-### 随机刻节奏（可配）
+### 随机刻节奏（默认 8 分钟/阶段）
 
-- 铜方块：每隔 `check-interval-ticks` 触发一轮，每轮对每个“湿”且可氧化的铜方块调用
-  `randomTick()` 共 `random-ticks-per-pass` 次。**真实随机刻**的预氧化概率为 64/1125，
-  晋级再乘邻接系数（孤立未氧化 m=0.75，氧化中 m=1）→ 平均约 **19.5 个随机刻/阶段**。
-  默认 `check-interval-ticks=600`（30 秒）+ `random-ticks-per-pass=1` →
-  1 随机刻/30 秒 ≈ 19.5×30s ≈ **9.75 分钟/阶段 ≈ 10 分钟**（快速调大 per-pass 即可）。
-- 铜傀儡：每轮以概率 `p = (checkIntervalTicks/20) / golem-random-tick-interval-seconds`
-  抽取，被选中即 `+1 阶段`。默认 600/20÷900 = 1/30 → 30 轮×30s = **900 秒 = 15 分钟/阶段**。
+- 方块与傀儡统一：每 tick 对被索引的湿铜方块 / 水中铜傀儡做一次“模拟随机刻”抽取
+  （概率 1/1365.3 ≈ 平均每 68.27 秒一次，与原版每方块自然随机刻频率一致），
+  被选中后再以 `advance-chance-per-tick`（默认 **14.2%**）掷“晋级”骰。
+- 平均每阶段需要 1 ÷ 14.2% ≈ **7 次随机刻**；按每方块平均每 68.27 秒一次随机刻估算，
+  ≈ 7×68.27s ≈ **8 分钟/阶段**（方块与傀儡相同，调大概率即可线性加快）。
 
 | 配置项 | 默认 | 含义 |
 | --- | --- | --- |
-| `check-interval-ticks` | 600（30 秒） | 每轮触发间隔（对湿铜调 randomTick / 对铜傀儡抽取） |
-| `random-ticks-per-pass` | 1 | 每轮对每个湿铜方块调用 randomTick() 的次数（越大越快） |
-| `golem-random-tick-interval-seconds` | 900（15 分钟） | 水中铜傀儡平均被选中一次所需秒数（选中即氧化一阶段） |
-| `rescan-interval-minutes` | 10 | 全量纠偏/补建扫描间隔（0=关闭） |
-| `scan-chunks-per-tick` | 1 | 全量扫描每 tick 处理的区块数 |
+| `advance-chance-per-tick` | 14.2（%） | 每接收到一个随机刻（方块=真实随机刻，傀儡=同频率模拟随机刻）直接氧化一阶段的概率（0=不加速；默认 ≈ 8 分钟/阶段） |
 | `worlds` | [] | 生效世界列表（空=全部） |
 
-### 索引维护（与滴水石锥加速一致的事件驱动架构）
+### 索引维护（事件驱动，无定时氧化轮）
 
-- 事件：`BlockPlaceEvent` / `BlockFromToEvent`（水流）/ `BlockBreakEvent` → 刷新放置点/流向/
-  破块点及其 6 邻接方块，若为“可氧化且湿”的铜方块则加入索引 `Set<Block>`，否则移除。
-- 启动时全量补建一次加载区块中的“湿铜”索引；周期性（`rescan-interval-minutes`）全量纠偏，
-  补全未被事件捕获（如世界编辑/高频水流）的情况。全量扫描按 `scan-chunks-per-tick` 限量摊开。
-- 处理轮校验索引项：非湿 / 不可氧化（上蜡、满氧化、被磨掉）即时移出，闭环自愈。
+- 湿铜索引：`BlockPlaceEvent` / `BlockFromToEvent`（水流）/ `BlockBreakEvent` → 刷新放置点/
+  流向/破块点及其 6 邻接方块，若为“可氧化且湿”的铜方块则加入索引 `Set<Block>`，否则移除。
+  启动时全量补建一次已加载区块中的“湿铜”索引，周期（固定 10 分钟）全量纠偏，
+  全量扫描按每 tick 1 区块限量摊开。
+- 铜傀儡索引由 `EntityAddToWorldEvent` / `EntityRemoveFromWorldEvent` 增量维护
+  （启动时补全一次）。
+- 每 tick 对索引做“模拟随机刻”抽取：方块每 tick 仅一次微概率判定（未选中不做任何方块操作），
+  失效项（变干/上蜡/满氧化）在选中时或低频剔除（每 10 秒）中移除，闭环自愈。
 
 ### 边界与注意
 
 - 铜傀儡在满氧化后由原版逻辑自动转为雕像（需在空气中）；本功能不干预，只推进到 OXIDIZED。
-- 调用 `randomTick()` 时随机刻频率为每 30 秒 1 次（默认），远低于原版每方块约 68 秒 1 次的
-  随机刻，且只作用于“湿铜”，对主线程影响可忽略；走的是原版氧化逻辑，无材质替换、无物理级联。
-- 铜傀儡遍历使用 `World#getEntities()` 过滤 `EntityType.COPPER_GOLEM`，忽略未加载区块外的实体。
+- “模拟随机刻”采用原版每方块自然随机刻的频率（平均每 68.27 秒一次），且只作用于被索引的
+  “湿”目标：每 tick 对每个目标仅做一次微概率判定（未选中零方块操作），对主线程影响可忽略；
+  方块晋级走 `setType`（无物理级联），傀儡走 `setWeatheringState`，均无副作用。
+- 铜傀儡索引由 `EntityAddToWorldEvent` / `EntityRemoveFromWorldEvent` 增量维护（启动补全一次），
+  不再遍历全实体。
 
 ## 配置示例
 
@@ -83,9 +88,5 @@
 copper-oxidation:
   enabled: true
   worlds: []
-  check-interval-ticks: 600
-  random-ticks-per-pass: 1
-  golem-random-tick-interval-seconds: 900
-  rescan-interval-minutes: 10
-  scan-chunks-per-tick: 1
+  advance-chance-per-tick: 14.2
 ```
